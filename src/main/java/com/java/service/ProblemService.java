@@ -225,6 +225,11 @@ public class ProblemService {
             return results;
         }
 
+        int sampleCodeId = addSampleCode(problemId, code, language, "SUBMIT", false);
+        if (sampleCodeId <= 0) {
+            return results;
+        }
+
         JudgeEngine engine = new JudgeEngine();
         for (Testcase tc : testcases) {
             JudgeResult jr = engine.judge(
@@ -238,13 +243,14 @@ public class ProblemService {
 
             Submission sub = new Submission();
             sub.setProblemId(problemId);
-            sub.setSampleCodeId(0);
+            sub.setSampleCodeId(sampleCodeId);
             sub.setTestcaseId(tc.getId());
             sub.setActualOutput(jr.getActualOutput());
             sub.setExecutionTime(jr.getExecutionTime());
             sub.setMemoryUsed(jr.getMemoryUsed());
             sub.setStatus(jr.getStatus());
             sub.setErrorMessage(jr.getErrorMessage());
+            submissionDAO.addSubmission(sub);
             results.add(sub);
         }
 
@@ -302,7 +308,11 @@ public class ProblemService {
         }
 
         try {
-            return problemDAO.deleteProblem(id);
+            boolean deleted = problemDAO.deleteProblem(id);
+            if (deleted) {
+                problemDAO.resetAutoIncrement();
+            }
+            return deleted;
         } catch (SQLException e) {
             e.printStackTrace();
             return false;

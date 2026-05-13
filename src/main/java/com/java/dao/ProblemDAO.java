@@ -90,6 +90,21 @@ public class ProblemDAO {
         }
     }
 
+    public void resetAutoIncrement() throws SQLException {
+        String maxSql = "SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM Problems";
+        try (Connection conn = DatabaseConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(maxSql)) {
+            int nextId = 1;
+            if (rs.next()) {
+                nextId = rs.getInt("next_id");
+            }
+            try (Statement alter = conn.createStatement()) {
+                alter.executeUpdate("ALTER TABLE Problems AUTO_INCREMENT = " + nextId);
+            }
+        }
+    }
+
     public int countProblems() throws SQLException {
         String sql = "SELECT COUNT(*) FROM Problems";
         try (Connection conn = DatabaseConnection.getConnection();

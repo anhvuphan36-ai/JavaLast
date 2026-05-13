@@ -127,7 +127,7 @@ public class JudgeEngine {
             default:
                 CompileResult err = new CompileResult();
                 err.success = false;
-                err.output = "Ngon ngu khong duoc ho tro: " + language;
+                err.output = "Ngôn ngữ không được hỗ trợ: " + language;
                 return err;
         }
     }
@@ -217,8 +217,8 @@ public class JudgeEngine {
                 if (pythonCommand == null) {
                     RunResult err = new RunResult();
                     err.exitCode = -1;
-                    err.stderr = "Khong tim thay Python that. Tren Windows, 'python' hien dang la Microsoft Store alias. "
-                            + "Hay cai Python tu python.org va tick 'Add python.exe to PATH', hoac tat App execution alias cho python.exe.";
+                    err.stderr = "Không tìm thấy Python thật. Trên Windows, 'python' hiện đang là Microsoft Store alias. "
+                            + "Hãy cài Python từ python.org và tick 'Add python.exe to PATH', hoặc tắt App execution alias cho python.exe.";
                     return err;
                 }
                 pb = new ProcessBuilder(pythonCommand, "solution.py");
@@ -226,7 +226,7 @@ public class JudgeEngine {
             default:
                 RunResult err = new RunResult();
                 err.exitCode = -1;
-                err.stderr = "Ngon ngu khong duoc ho tro";
+                err.stderr = "Ngôn ngữ không được hỗ trợ";
                 return err;
         }
         pb.directory(workDir.toFile());
@@ -351,6 +351,7 @@ public class JudgeEngine {
         }
 
         return compareTokens(normalizedActual, normalizedExpected)
+                || compareLabelValues(normalizedActual, normalizedExpected)
                 || compareNumericMultiset(normalizedActual, normalizedExpected);
     }
 
@@ -428,6 +429,49 @@ public class JudgeEngine {
             }
         }
         return true;
+    }
+
+    private boolean compareLabelValues(String actual, String expected) {
+        java.util.List<Double> expectedValues = extractValuesAfterColon(expected);
+        if (expectedValues.isEmpty()) {
+            return false;
+        }
+
+        java.util.List<Double> actualNumbers = extractNumbers(actual);
+        if (actualNumbers.size() < expectedValues.size()) {
+            return false;
+        }
+
+        java.util.List<Double> actualValues;
+        if (actualNumbers.size() == expectedValues.size()) {
+            actualValues = actualNumbers;
+        } else {
+            actualValues = actualNumbers.subList(actualNumbers.size() - expectedValues.size(), actualNumbers.size());
+        }
+
+        for (int i = 0; i < expectedValues.size(); i++) {
+            if (!numericEquals(String.valueOf(actualValues.get(i)), String.valueOf(expectedValues.get(i)))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private java.util.List<Double> extractValuesAfterColon(String output) {
+        java.util.List<Double> values = new java.util.ArrayList<>();
+        if (output == null) {
+            return values;
+        }
+
+        java.util.regex.Matcher matcher = java.util.regex.Pattern
+                .compile(":\\s*([-+]?\\d+(?:[\\.,]\\d+)?(?:[eE][-+]?\\d+)?)")
+                .matcher(output);
+        while (matcher.find()) {
+            try {
+                values.add(Double.parseDouble(normalizeNumber(matcher.group(1))));
+            } catch (NumberFormatException ignored) {}
+        }
+        return values;
     }
 
     private java.util.List<Double> extractNumbers(String output) {

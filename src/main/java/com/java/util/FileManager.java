@@ -54,14 +54,18 @@ public class FileManager {
         }
     }
 
-    // === Problem Image ===
+    // === Problem Attachment ===
     public static String saveProblemImage(int problemId, String sourceImagePath) throws IOException {
+        return saveProblemAttachment(problemId, sourceImagePath);
+    }
+
+    public static String saveProblemAttachment(int problemId, String sourcePath) throws IOException {
         String problemDir = PROBLEMS_DIR + "/problem_" + problemId;
         createDirIfNotExists(problemDir);
 
-        String fileName = Paths.get(sourceImagePath).getFileName().toString();
+        String fileName = Paths.get(sourcePath).getFileName().toString();
         String destPath = problemDir + "/" + fileName;
-        Files.copy(Paths.get(sourceImagePath), Paths.get(destPath),
+        Files.copy(Paths.get(sourcePath), Paths.get(destPath),
                 java.nio.file.StandardCopyOption.REPLACE_EXISTING);
         return destPath;
     }

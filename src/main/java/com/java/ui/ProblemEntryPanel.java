@@ -20,12 +20,12 @@ public class ProblemEntryPanel extends JPanel {
     private AIService aiService = new GeminiAIService();
     private JTextField titleField;
     private JTextArea descArea;
-    private JLabel imageLabel;
+    private JLabel attachmentLabel;
     private JLabel autoGenerateStatusLabel;
     private JComboBox<String> contestTypeBox;
     private JTextField timeLimitField;
     private JTextField memoryLimitField;
-    private String selectedImagePath = null;
+    private String selectedAttachmentPath = null;
     private JList<Problem> problemList;
     private DefaultListModel<Problem> problemListModel;
 
@@ -103,19 +103,19 @@ public class ProblemEntryPanel extends JPanel {
 
         row++;
         gbc.gridx = 0; gbc.gridy = row; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0; gbc.weighty = 0;
-        formPanel.add(createFormLabel("Ảnh đề bài:"), gbc);
+        formPanel.add(createFormLabel("File đề bài:"), gbc);
         gbc.gridx = 1;
-        JPanel imagePanel = new JPanel(new BorderLayout(8, 4));
-        imagePanel.setBackground(AppTheme.BG_DARK);
-        imageLabel = new JLabel("Chưa chọn ảnh", JLabel.CENTER);
-        imageLabel.setPreferredSize(new Dimension(180, 120));
-        imageLabel.setBorder(BorderFactory.createLineBorder(AppTheme.TEXT_MUTED));
-        imageLabel.setForeground(AppTheme.TEXT_MUTED);
-        JButton btnChooseImage = new JButton("📷 Chọn ảnh...");
-        btnChooseImage.addActionListener(e -> chooseImage());
-        imagePanel.add(imageLabel, BorderLayout.CENTER);
-        imagePanel.add(btnChooseImage, BorderLayout.SOUTH);
-        formPanel.add(imagePanel, gbc);
+        JPanel attachmentPanel = new JPanel(new BorderLayout(8, 4));
+        attachmentPanel.setBackground(AppTheme.BG_DARK);
+        attachmentLabel = new JLabel("Chưa chọn file", JLabel.CENTER);
+        attachmentLabel.setPreferredSize(new Dimension(180, 120));
+        attachmentLabel.setBorder(BorderFactory.createLineBorder(AppTheme.TEXT_MUTED));
+        attachmentLabel.setForeground(AppTheme.TEXT_MUTED);
+        JButton btnChooseFile = new JButton("Chọn ảnh...");
+        btnChooseFile.addActionListener(e -> chooseProblemFile());
+        attachmentPanel.add(attachmentLabel, BorderLayout.CENTER);
+        attachmentPanel.add(btnChooseFile, BorderLayout.SOUTH);
+        formPanel.add(attachmentPanel, gbc);
 
         row++;
         gbc.gridx = 0; gbc.gridy = row; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0;
@@ -161,7 +161,6 @@ public class ProblemEntryPanel extends JPanel {
         autoGenerateStatusLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
         southPanel.add(btnPanel, BorderLayout.CENTER);
-        southPanel.add(autoGenerateStatusLabel, BorderLayout.SOUTH);
         add(southPanel, BorderLayout.SOUTH);
 
         refreshProblemList();
@@ -189,42 +188,43 @@ public class ProblemEntryPanel extends JPanel {
         timeLimitField.setText(String.valueOf(p.getTimeLimit()));
         memoryLimitField.setText(String.valueOf(p.getMemoryLimit()));
         if (p.getImagePath() != null && !p.getImagePath().isEmpty()) {
-            imageLabel.setText("Ảnh đã lưu");
-            imageLabel.setIcon(null);
-            try {
-                imageLabel.setIcon(new ImageIcon(new ImageIcon(p.getImagePath()).getImage().getScaledInstance(160, 100, Image.SCALE_SMOOTH)));
-            } catch (Exception e) {
-                imageLabel.setText("Không tải được ảnh");
+            attachmentLabel.setText(new File(p.getImagePath()).getName());
+            attachmentLabel.setIcon(null);
+            if (isImageFile(p.getImagePath())) {
+                try {
+                    attachmentLabel.setIcon(new ImageIcon(new ImageIcon(p.getImagePath()).getImage().getScaledInstance(160, 100, Image.SCALE_SMOOTH)));
+                } catch (Exception e) {
+                    attachmentLabel.setText("Không tải được file");
+                }
             }
         } else {
-            imageLabel.setText("Chưa có ảnh");
-            imageLabel.setIcon(null);
+            attachmentLabel.setText("Chưa có file");
+            attachmentLabel.setIcon(null);
         }
-        selectedImagePath = p.getImagePath();
+        selectedAttachmentPath = p.getImagePath();
     }
 
-    private void chooseImage() {
+    private void chooseProblemFile() {
         JFileChooser chooser = new JFileChooser();
-        chooser.setFileFilter(new FileNameExtensionFilter("Images", "jpg", "jpeg", "png", "gif"));
+        chooser.setFileFilter(new FileNameExtensionFilter("Image files", "jpg", "jpeg", "png", "gif", "bmp", "webp"));
         if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             File file = chooser.getSelectedFile();
-            selectedImagePath = file.getAbsolutePath();
-            imageLabel.setText(file.getName());
-            imageLabel.setIcon(new ImageIcon(new ImageIcon(selectedImagePath).getImage().getScaledInstance(160, 100, Image.SCALE_SMOOTH)));
+            selectedAttachmentPath = file.getAbsolutePath();
+            attachmentLabel.setText(file.getName());
+            attachmentLabel.setIcon(null);
+            if (isImageFile(selectedAttachmentPath)) {
+                attachmentLabel.setIcon(new ImageIcon(new ImageIcon(selectedAttachmentPath).getImage().getScaledInstance(160, 100, Image.SCALE_SMOOTH)));
+            }
         }
     }
 
     private void triggerAutoGenerateTestcases(Problem p) {
-        autoGenerateStatusLabel.setToolTipText(null);
-        autoGenerateStatusLabel.setText("Dang sinh testcase ngam cho de [" + p.getTitle() + "]...");
-        autoGenerateStatusLabel.setForeground(AppTheme.ACCENT_YELLOW);
-
         SwingWorker<AutoGenerationResult, Void> worker = new SwingWorker<>() {
             @Override
             protected AutoGenerationResult doInBackground() {
                 AIResponse res = aiService.analyzeProblem(p);
                 if (res == null) {
-                    return AutoGenerationResult.failed("AI khong tra ve ket qua.");
+                    return AutoGenerationResult.failed("AI không trả về kết quả.");
                 }
                 if (!res.isSuccess() || res.getTestcases() == null || res.getTestcases().isEmpty()) {
                     return AutoGenerationResult.failed(res.getErrorMessage());
@@ -254,19 +254,8 @@ public class ProblemEntryPanel extends JPanel {
             @Override
             protected void done() {
                 try {
-                    AutoGenerationResult result = get();
-                    if (result.success) {
-                        autoGenerateStatusLabel.setText("Da sinh ngam " + result.savedTestcases + " testcase cho de [" + p.getTitle() + "].");
-                        autoGenerateStatusLabel.setForeground(AppTheme.ACCENT_GREEN);
-                    } else {
-                        autoGenerateStatusLabel.setText("Sinh testcase ngam that bai cho de [" + p.getTitle() + "].");
-                        autoGenerateStatusLabel.setForeground(AppTheme.ACCENT_RED);
-                        autoGenerateStatusLabel.setToolTipText(result.errorMessage);
-                    }
+                    get();
                 } catch (Exception ex) {
-                    autoGenerateStatusLabel.setText("Sinh testcase ngam bi loi cho de [" + p.getTitle() + "].");
-                    autoGenerateStatusLabel.setForeground(AppTheme.ACCENT_RED);
-                    autoGenerateStatusLabel.setToolTipText(ex.getMessage());
                     ex.printStackTrace();
                 }
             }
@@ -277,8 +266,12 @@ public class ProblemEntryPanel extends JPanel {
     private void saveProblem() {
         String title = titleField.getText().trim();
         String desc = descArea.getText().trim();
-        if (title.isEmpty() || desc.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập tiêu đề và nội dung đề!");
+        if (title.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập tiêu đề!");
+            return;
+        }
+        if (desc.isEmpty() && selectedAttachmentPath == null) {
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập nội dung đề hoặc chọn ảnh!");
             return;
         }
         if (title.length() > 255) {
@@ -305,7 +298,7 @@ public class ProblemEntryPanel extends JPanel {
 
         Problem p = new Problem();
         p.setTitle(title);
-        p.setDescription(desc);
+        p.setDescription(desc.isEmpty() ? "Nội dung đề trong file đính kèm." : desc);
         p.setContestType((String) contestTypeBox.getSelectedItem());
         p.setTimeLimit(timeLimit);
         p.setMemoryLimit(memoryLimit);
@@ -313,9 +306,9 @@ public class ProblemEntryPanel extends JPanel {
         int problemId = problemService.createProblem(p);
         if (problemId > 0) {
             p.setId(problemId);
-            if (selectedImagePath != null) {
+            if (selectedAttachmentPath != null) {
                 try {
-                    String savedPath = FileManager.saveProblemImage(problemId, selectedImagePath);
+                    String savedPath = FileManager.saveProblemAttachment(problemId, selectedAttachmentPath);
                     p.setImagePath(savedPath);
                     problemService.updateProblem(p);
                 } catch (IOException ex) {
@@ -338,8 +331,12 @@ public class ProblemEntryPanel extends JPanel {
         }
         String title = titleField.getText().trim();
         String desc = descArea.getText().trim();
-        if (title.isEmpty() || desc.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập tiêu đề và nội dung đề!");
+        if (title.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập tiêu đề!");
+            return;
+        }
+        if (desc.isEmpty() && selectedAttachmentPath == null) {
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập nội dung đề hoặc chọn ảnh!");
             return;
         }
         int timeLimit, memoryLimit;
@@ -356,13 +353,13 @@ public class ProblemEntryPanel extends JPanel {
         }
 
         selected.setTitle(title);
-        selected.setDescription(desc);
+        selected.setDescription(desc.isEmpty() ? "Nội dung đề trong file đính kèm." : desc);
         selected.setContestType((String) contestTypeBox.getSelectedItem());
         selected.setTimeLimit(timeLimit);
         selected.setMemoryLimit(memoryLimit);
-        if (selectedImagePath != null && !selectedImagePath.isBlank()) {
+        if (selectedAttachmentPath != null && !selectedAttachmentPath.isBlank()) {
             try {
-                String savedPath = FileManager.saveProblemImage(selected.getId(), selectedImagePath);
+                String savedPath = FileManager.saveProblemAttachment(selected.getId(), selectedAttachmentPath);
                 selected.setImagePath(savedPath);
             } catch (IOException ex) {
                 ex.printStackTrace();
@@ -401,12 +398,19 @@ public class ProblemEntryPanel extends JPanel {
     private void clearForm() {
         titleField.setText("");
         descArea.setText("");
-        selectedImagePath = null;
-        imageLabel.setText("Chưa chọn ảnh");
-        imageLabel.setIcon(null);
+        selectedAttachmentPath = null;
+        attachmentLabel.setText("Chưa chọn file");
+        attachmentLabel.setIcon(null);
         timeLimitField.setText("2000");
         memoryLimitField.setText("256");
         problemList.clearSelection();
+    }
+
+    private boolean isImageFile(String path) {
+        if (path == null) return false;
+        String lower = path.toLowerCase();
+        return lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png")
+                || lower.endsWith(".gif") || lower.endsWith(".bmp") || lower.endsWith(".webp");
     }
 
     private static class AutoGenerationResult {

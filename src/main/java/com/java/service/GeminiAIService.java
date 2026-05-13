@@ -13,6 +13,7 @@ import okhttp3.*;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -81,39 +82,42 @@ public class GeminiAIService implements AIService {
             String acCode = (solEl != null && !solEl.isJsonNull()) ? CodeFormatter.formatGeneratedCode(solEl.getAsString(), "java") : "";
             response.setGeneratedSolution(acCode);
 
-            // Bước 3: Chạy code AC để tính output chính xác cho từng input
             List<Testcase> testcases = new ArrayList<>();
-            if (obj.has("inputs") && obj.get("inputs").isJsonArray()) {
+            if (obj.has("testcases") && obj.get("testcases").isJsonArray()) {
+                JsonArray testcaseArray = obj.getAsJsonArray("testcases");
+                for (JsonElement e : testcaseArray) {
+                    JsonObject tcObj = e.getAsJsonObject();
+                    String input = tcObj.has("input") ? tcObj.get("input").getAsString() : "";
+                    String output = tcObj.has("output") ? tcObj.get("output").getAsString() : "";
+                    String type = tcObj.has("type") ? tcObj.get("type").getAsString() : "normal";
+                    if (input.isBlank() || output.isBlank()) continue;
+
+                    Testcase tc = new Testcase();
+                    tc.setInputData(input.trim());
+                    tc.setExpectedOutput(output.trim());
+                    tc.setTestcaseType(type);
+                    tc.setAiGenerated(true);
+                    testcases.add(tc);
+                }
+            }
+
+            if (testcases.isEmpty() && obj.has("inputs") && obj.get("inputs").isJsonArray()) {
                 JudgeEngine engine = new JudgeEngine();
                 JsonArray inputArray = obj.getAsJsonArray("inputs");
                 for (JsonElement e : inputArray) {
                     JsonObject tcObj = e.getAsJsonObject();
                     String input = tcObj.has("input") ? tcObj.get("input").getAsString() : "";
                     String type  = tcObj.has("type")  ? tcObj.get("type").getAsString()  : "normal";
-                    if (input.isBlank()) continue;
+                    if (input.isBlank() || acCode.isBlank()) continue;
 
-                    if (acCode.isBlank()) {
-                        // Không có code AC → không thể tính output
-                        response.setSuccess(false);
-                        response.setErrorMessage("AI không sinh được code AC để tính output. Thử lại.");
-                        return response;
-                    }
-
-                    // Chạy code AC với input này
                     JudgeResult jr = engine.judge(acCode, "java", input, "", 10000, 256);
-                    if ("CE".equals(jr.getStatus())) {
-                        response.setSuccess(false);
-                        response.setErrorMessage("Code AC bị lỗi biên dịch (CE):\n" + jr.getErrorMessage()
-                            + "\nHãy thử lại để AI sinh code AC khác.");
-                        return response;
-                    }
-                    if ("RE".equals(jr.getStatus()) || "TLE".equals(jr.getStatus())
+                    if ("RE".equals(jr.getStatus()) || "TLE".equals(jr.getStatus()) || "CE".equals(jr.getStatus())
                             || jr.getActualOutput() == null || jr.getActualOutput().isBlank()) {
                         continue;
                     }
 
                     Testcase tc = new Testcase();
-                    tc.setInputData(input);
+                    tc.setInputData(input.trim());
                     tc.setExpectedOutput(jr.getActualOutput().trim());
                     tc.setTestcaseType(type);
                     tc.setAiGenerated(true);
@@ -182,17 +186,17 @@ public class GeminiAIService implements AIService {
 
     private String buildAnalyzePrompt(Problem problem) {
         StringBuilder sb = new StringBuilder();
-        sb.append("Bạn là chuyên gia lp trình thi đấu. Hãy thực hiện 2 việc:\n");
-        sb.append("1. Viết CODE JAVA giải đúng hoàn toàn bài toán (chỉ dùng java.util.Scanner, không import khác).\n");
-        sb.append("2. Sinh 5 INPUT đa dạng: small, large, edge cases (n=1, tất cả âm, tất cả bằng nhau).\n\n");
-        sb.append("QUY TẮc: Chỉ trả về JSON, KHÔNG thêm text ngoài JSON, KHÔNG có markdown code block.\n\n");
+        sb.append("Bạn là chuyên gia lập trình thi đấu. Hãy thực hiện 2 việc:\n");
+        sb.append("1. Viết code Java đúng hoàn toàn cho bài toán.\n");
+        sb.append("2. Sinh 5 testcase đa dạng, mỗi testcase bắt buộc có cả input và output đúng.\n\n");
+        sb.append("QUY TẮC: Chỉ trả về JSON, KHÔNG thêm text ngoài JSON, KHÔNG có markdown code block.\n\n");
         sb.append("{\n");
-        sb.append("  \"explanation\": \"Mô tả ngắn thuật toán\",\n");
-        sb.append("  \"ac_solution\": \"import java.util.Scanner;\\npublic class Main { ... }\",\n");
-        sb.append("  \"inputs\": [\n");
-        sb.append("    {\"type\": \"small\", \"input\": \"dữ liệu input thực tế\"},\n");
-        sb.append("    {\"type\": \"edge\",  \"input\": \"...\"},\n");
-        sb.append("    {\"type\": \"large\", \"input\": \"...\"}\n");
+        sb.append("  \"explanation\": \"Mo ta ngan thuat toan\",\n");
+        sb.append("  \"ac_solution\": \"import java.util.*;\\npublic class Main { ... }\",\n");
+        sb.append("  \"testcases\": [\n");
+        sb.append("    {\"type\": \"small\", \"input\": \"dữ liệu input\", \"output\": \"kết quả đúng\"},\n");
+        sb.append("    {\"type\": \"edge\",  \"input\": \"...\", \"output\": \"...\"},\n");
+        sb.append("    {\"type\": \"large\", \"input\": \"...\", \"output\": \"...\"}\n");
         sb.append("  ]\n");
         sb.append("}\n\n");
         sb.append("ĐỀ THI:\n");
@@ -243,10 +247,12 @@ public class GeminiAIService implements AIService {
             parts.add(textPart);
 
             if (imagePath != null && !imagePath.isBlank() && Files.exists(Paths.get(imagePath))) {
-                byte[] imageBytes = Files.readAllBytes(Paths.get(imagePath));
+                Path attachmentPath = Paths.get(imagePath);
+                byte[] imageBytes = Files.readAllBytes(attachmentPath);
                 String base64Image = Base64.getEncoder().encodeToString(imageBytes);
+                String mimeType = detectMimeType(attachmentPath);
                 JsonObject inlineData = new JsonObject();
-                inlineData.addProperty("mimeType", "image/png");
+                inlineData.addProperty("mimeType", mimeType);
                 inlineData.addProperty("data", base64Image);
                 JsonObject imagePart = new JsonObject();
                 imagePart.add("inlineData", inlineData);
@@ -314,6 +320,22 @@ public class GeminiAIService implements AIService {
             }
             return sb.toString();
         }
+    }
+
+    private String detectMimeType(Path path) {
+        try {
+            String detected = Files.probeContentType(path);
+            if (detected != null && !detected.isBlank()) {
+                return detected;
+            }
+        } catch (IOException ignored) {}
+
+        String name = path.getFileName().toString().toLowerCase();
+        if (name.endsWith(".jpg") || name.endsWith(".jpeg")) return "image/jpeg";
+        if (name.endsWith(".gif")) return "image/gif";
+        if (name.endsWith(".webp")) return "image/webp";
+        if (name.endsWith(".bmp")) return "image/bmp";
+        return "image/png";
     }
 
 }

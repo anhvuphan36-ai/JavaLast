@@ -327,9 +327,9 @@ public class CodeSubmitPanel extends JPanel {
         List<com.java.model.Testcase> testcases = problemService.getTestcasesByProblem(selected.id);
         if (testcases.isEmpty()) {
             JOptionPane.showMessageDialog(this,
-                    "De [" + selected.title + "] chua co testcase nao trong CSDL.\n"
-                            + "Neu vua nhap de, hay doi AI sinh ngam xong hoac vao tab AI de sinh lai testcase.",
-                    "Chua co testcase",
+                    "Đề [" + selected.title + "] chưa có testcase nào trong CSDL.\n"
+                            + "Nếu vừa nhập đề, hãy đợi AI sinh ngầm xong hoặc vào tab AI để sinh lại testcase.",
+                    "Chưa có testcase",
                     JOptionPane.WARNING_MESSAGE);
             return;
         }
@@ -352,7 +352,7 @@ public class CodeSubmitPanel extends JPanel {
                 try {
                     List<Submission> results = get();
                     if (results.isEmpty()) {
-                        statusLabel.setText("Khong chay duoc code hoac chua co testcase.");
+                        statusLabel.setText("Không chạy được code hoặc chưa có testcase.");
                         statusLabel.setForeground(AppTheme.ACCENT_RED);
                         return;
                     }
@@ -476,8 +476,12 @@ public class CodeSubmitPanel extends JPanel {
 
     private String shorten(String s, int maxLen) {
         if (s == null) return "";
-        String oneLine = s.replace("\n", "⏎").replace("\r", "");
-        return oneLine.length() > maxLen ? oneLine.substring(0, maxLen) + "…" : oneLine;
+        String oneLine = s
+                .replace("\r\n", "\\n")
+                .replace("\n", "\\n")
+                .replace("\r", "\\n")
+                .replaceAll("\\p{Cntrl}", "?");
+        return oneLine.length() > maxLen ? oneLine.substring(0, maxLen) + "..." : oneLine;
     }
 
     private static class AlternatingRowRenderer extends DefaultTableCellRenderer {
