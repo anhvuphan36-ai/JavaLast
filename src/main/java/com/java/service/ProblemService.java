@@ -216,6 +216,41 @@ public class ProblemService {
         return results;
     }
 
+    public List<Submission> runAdHocJudging(int problemId, String code, String language) {
+        Problem problem = getProblemById(problemId);
+        List<Testcase> testcases = testcaseDAO.getTestcasesByProblemId(problemId);
+        List<Submission> results = new ArrayList<>();
+
+        if (problem == null || code == null || code.isBlank() || testcases.isEmpty()) {
+            return results;
+        }
+
+        JudgeEngine engine = new JudgeEngine();
+        for (Testcase tc : testcases) {
+            JudgeResult jr = engine.judge(
+                    code,
+                    language,
+                    tc.getInputData(),
+                    tc.getExpectedOutput(),
+                    problem.getTimeLimit(),
+                    problem.getMemoryLimit()
+            );
+
+            Submission sub = new Submission();
+            sub.setProblemId(problemId);
+            sub.setSampleCodeId(0);
+            sub.setTestcaseId(tc.getId());
+            sub.setActualOutput(jr.getActualOutput());
+            sub.setExecutionTime(jr.getExecutionTime());
+            sub.setMemoryUsed(jr.getMemoryUsed());
+            sub.setStatus(jr.getStatus());
+            sub.setErrorMessage(jr.getErrorMessage());
+            results.add(sub);
+        }
+
+        return results;
+    }
+
     public List<Submission> getSubmissionsByProblem(int problemId) {
         return submissionDAO.getByProblemId(problemId);
     }
@@ -274,12 +309,4 @@ public class ProblemService {
         }
     }
 
-    public boolean updateProblem(Problem p) {
-        try {
-            return problemDAO.updateProblem(p);
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
 }

@@ -47,7 +47,9 @@ public class JudgeEngine {
             if (compareOutput(actualOutput, expectedOutput)) {
                 return JudgeResult.accepted(actualOutput, runResult.executionTimeMs, runResult.memoryUsedKB);
             } else {
-                return JudgeResult.wrongAnswer(actualOutput, runResult.executionTimeMs, runResult.memoryUsedKB);
+                JudgeResult result = JudgeResult.wrongAnswer(actualOutput, runResult.executionTimeMs, runResult.memoryUsedKB);
+                result.setErrorMessage(buildWrongAnswerMessage(actualOutput, expectedOutput));
+                return result;
             }
 
         } catch (Exception e) {
@@ -211,9 +213,15 @@ public class JudgeEngine {
                 break;
             case "python":
             case "py":
-                pb = IS_WINDOWS
-                    ? new ProcessBuilder("python", "solution.py")
-                    : new ProcessBuilder("python3", "solution.py");
+                String pythonCommand = findPythonCommand();
+                if (pythonCommand == null) {
+                    RunResult err = new RunResult();
+                    err.exitCode = -1;
+                    err.stderr = "Khong tim thay Python that. Tren Windows, 'python' hien dang la Microsoft Store alias. "
+                            + "Hay cai Python tu python.org va tick 'Add python.exe to PATH', hoac tat App execution alias cho python.exe.";
+                    return err;
+                }
+                pb = new ProcessBuilder(pythonCommand, "solution.py");
                 break;
             default:
                 RunResult err = new RunResult();
@@ -310,6 +318,27 @@ public class JudgeEngine {
         return "Main";
     }
 
+    private String findPythonCommand() {
+        String[] candidates = IS_WINDOWS ? new String[]{"python", "py", "python3"} : new String[]{"python3", "python"};
+        for (String candidate : candidates) {
+            try {
+                ProcessBuilder pb = new ProcessBuilder(candidate, "--version");
+                pb.redirectErrorStream(true);
+                Process process = pb.start();
+                String output = readStream(process.getInputStream()).toLowerCase();
+                boolean exited = process.waitFor(5, TimeUnit.SECONDS);
+                if (!exited) {
+                    process.destroyForcibly();
+                    continue;
+                }
+                if (process.exitValue() == 0 && output.contains("python")) {
+                    return candidate;
+                }
+            } catch (Exception ignored) {}
+        }
+        return null;
+    }
+
     private boolean compareOutput(String actual, String expected) {
         if (actual == null && expected == null) return true;
         if (actual == null || expected == null) return false;
@@ -317,12 +346,17 @@ public class JudgeEngine {
         String normalizedActual = normalizeOutput(actual);
         String normalizedExpected = normalizeOutput(expected);
 
-        return normalizedActual.equals(normalizedExpected);
+        if (normalizedActual.equals(normalizedExpected)) {
+            return true;
+        }
+
+        return compareTokens(normalizedActual, normalizedExpected)
+                || compareNumericMultiset(normalizedActual, normalizedExpected);
     }
 
     private String normalizeOutput(String output) {
         if (output == null) return "";
-        String[] lines = output.split("\n");
+        String[] lines = output.replace("\r\n", "\n").replace('\r', '\n').split("\n");
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < lines.length; i++) {
             String line = stripTrailing(lines[i]);
@@ -330,6 +364,101 @@ public class JudgeEngine {
             sb.append(line);
         }
         return sb.toString().trim();
+    }
+
+    private String normalizeTokens(String output) {
+        if (output == null) return "";
+        return output.trim().replaceAll("\\s+", " ");
+    }
+
+    private boolean compareTokens(String actual, String expected) {
+        String normalizedActual = normalizeTokens(actual);
+        String normalizedExpected = normalizeTokens(expected);
+        if (normalizedActual.equals(normalizedExpected)) {
+            return true;
+        }
+        if (normalizedActual.isEmpty() || normalizedExpected.isEmpty()) {
+            return normalizedActual.equals(normalizedExpected);
+        }
+
+        String[] actualTokens = normalizedActual.split(" ");
+        String[] expectedTokens = normalizedExpected.split(" ");
+        if (actualTokens.length != expectedTokens.length) {
+            return false;
+        }
+
+        for (int i = 0; i < actualTokens.length; i++) {
+            if (actualTokens[i].equals(expectedTokens[i])) {
+                continue;
+            }
+            if (!numericEquals(actualTokens[i], expectedTokens[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean numericEquals(String actual, String expected) {
+        try {
+            double a = Double.parseDouble(normalizeNumber(actual));
+            double e = Double.parseDouble(normalizeNumber(expected));
+            double diff = Math.abs(a - e);
+            double scale = Math.max(1.0, Math.max(Math.abs(a), Math.abs(e)));
+            return diff <= 1e-6 * scale;
+        } catch (NumberFormatException ex) {
+            return false;
+        }
+    }
+
+    private boolean compareNumericMultiset(String actual, String expected) {
+        java.util.List<Double> actualNumbers = extractNumbers(actual);
+        java.util.List<Double> expectedNumbers = extractNumbers(expected);
+        if (actualNumbers.isEmpty() || expectedNumbers.isEmpty()) {
+            return false;
+        }
+        if (actualNumbers.size() != expectedNumbers.size()) {
+            return false;
+        }
+
+        actualNumbers.sort(Double::compareTo);
+        expectedNumbers.sort(Double::compareTo);
+        for (int i = 0; i < actualNumbers.size(); i++) {
+            if (!numericEquals(String.valueOf(actualNumbers.get(i)), String.valueOf(expectedNumbers.get(i)))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private java.util.List<Double> extractNumbers(String output) {
+        java.util.List<Double> numbers = new java.util.ArrayList<>();
+        if (output == null) {
+            return numbers;
+        }
+
+        java.util.regex.Matcher matcher = java.util.regex.Pattern
+                .compile("(?<![A-Za-z_])[-+]?\\d+(?:[\\.,]\\d+)?(?:[eE][-+]?\\d+)?(?![A-Za-z_])")
+                .matcher(output);
+        while (matcher.find()) {
+            try {
+                numbers.add(Double.parseDouble(normalizeNumber(matcher.group())));
+            } catch (NumberFormatException ignored) {}
+        }
+        return numbers;
+    }
+
+    private String normalizeNumber(String value) {
+        return value == null ? "" : value.replace(',', '.');
+    }
+
+    private String buildWrongAnswerMessage(String actual, String expected) {
+        return "Expected: " + preview(expected) + " | Actual: " + preview(actual);
+    }
+
+    private String preview(String output) {
+        if (output == null) return "";
+        String oneLine = output.replace("\r\n", "\n").replace('\r', '\n').trim().replace("\n", "\\n");
+        return oneLine.length() > 160 ? oneLine.substring(0, 160) + "..." : oneLine;
     }
 
     private String readStream(InputStream is) throws IOException {

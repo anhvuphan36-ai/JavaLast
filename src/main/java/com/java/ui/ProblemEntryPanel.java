@@ -1,6 +1,10 @@
 package com.java.ui;
 
+import com.java.model.AIResponse;
 import com.java.model.Problem;
+import com.java.model.Testcase;
+import com.java.service.AIService;
+import com.java.service.GeminiAIService;
 import com.java.service.ProblemService;
 import com.java.util.FileManager;
 
@@ -13,9 +17,11 @@ import java.util.List;
 
 public class ProblemEntryPanel extends JPanel {
     private ProblemService problemService;
+    private AIService aiService = new GeminiAIService();
     private JTextField titleField;
     private JTextArea descArea;
     private JLabel imageLabel;
+    private JLabel autoGenerateStatusLabel;
     private JComboBox<String> contestTypeBox;
     private JTextField timeLimitField;
     private JTextField memoryLimitField;
@@ -136,7 +142,11 @@ public class ProblemEntryPanel extends JPanel {
 
         add(formPanel, BorderLayout.CENTER);
 
+        JPanel southPanel = new JPanel(new BorderLayout(4, 4));
+        southPanel.setBackground(AppTheme.BG_DARK);
+
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
+        btnPanel.setBackground(AppTheme.BG_DARK);
         JButton btnSave = AppTheme.createPrimaryButton("💾 Lưu đề mới");
         JButton btnUpdate = AppTheme.createAccentButton("🔄 Cập nhật", AppTheme.ACCENT_YELLOW);
         JButton btnNew = AppTheme.createSecondaryButton("📄 Mới");
@@ -146,7 +156,13 @@ public class ProblemEntryPanel extends JPanel {
         btnPanel.add(btnSave);
         btnPanel.add(btnUpdate);
         btnPanel.add(btnNew);
-        add(btnPanel, BorderLayout.SOUTH);
+        autoGenerateStatusLabel = new JLabel(" ");
+        autoGenerateStatusLabel.setForeground(AppTheme.TEXT_SECONDARY);
+        autoGenerateStatusLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
+        southPanel.add(btnPanel, BorderLayout.CENTER);
+        southPanel.add(autoGenerateStatusLabel, BorderLayout.SOUTH);
+        add(southPanel, BorderLayout.SOUTH);
 
         refreshProblemList();
     }
@@ -199,28 +215,58 @@ public class ProblemEntryPanel extends JPanel {
     }
 
     private void triggerAutoGenerateTestcases(Problem p) {
-        SwingWorker<com.java.model.AIResponse, Void> worker = new SwingWorker<>() {
+        autoGenerateStatusLabel.setToolTipText(null);
+        autoGenerateStatusLabel.setText("Dang sinh testcase ngam cho de [" + p.getTitle() + "]...");
+        autoGenerateStatusLabel.setForeground(AppTheme.ACCENT_YELLOW);
+
+        SwingWorker<AutoGenerationResult, Void> worker = new SwingWorker<>() {
             @Override
-            protected com.java.model.AIResponse doInBackground() {
-                return new com.java.service.GeminiAIService().analyzeProblem(p);
+            protected AutoGenerationResult doInBackground() {
+                AIResponse res = aiService.analyzeProblem(p);
+                if (res == null) {
+                    return AutoGenerationResult.failed("AI khong tra ve ket qua.");
+                }
+                if (!res.isSuccess() || res.getTestcases() == null || res.getTestcases().isEmpty()) {
+                    return AutoGenerationResult.failed(res.getErrorMessage());
+                }
+
+                problemService.deleteAiTestcasesForProblem(p.getId());
+                int saved = 0;
+                for (Testcase tc : res.getTestcases()) {
+                    boolean ok = problemService.addTestcaseFull(
+                            p.getId(),
+                            tc.getInputData(),
+                            tc.getExpectedOutput(),
+                            tc.getTestcaseType(),
+                            true
+                    );
+                    if (ok) saved++;
+                }
+
+                int sampleCodeId = -1;
+                if (res.getGeneratedSolution() != null && !res.getGeneratedSolution().isBlank()) {
+                    sampleCodeId = problemService.addSampleCode(p.getId(), res.getGeneratedSolution(), "java", "AC", true);
+                }
+
+                return AutoGenerationResult.succeeded(saved, sampleCodeId);
             }
+
             @Override
             protected void done() {
                 try {
-                    com.java.model.AIResponse res = get();
-                    if (res.isSuccess() && res.getTestcases() != null) {
-                        problemService.deleteAiTestcasesForProblem(p.getId());
-                        for (com.java.model.Testcase tc : res.getTestcases()) {
-                            problemService.addTestcaseFull(p.getId(), tc.getInputData(), tc.getExpectedOutput(), tc.getTestcaseType(), true);
-                        }
-                        if (res.getGeneratedSolution() != null && !res.getGeneratedSolution().isBlank()) {
-                            problemService.addSampleCode(p.getId(), res.getGeneratedSolution(), "java", "AC", true);
-                        }
-                        JOptionPane.showMessageDialog(ProblemEntryPanel.this, "✅ Đã tự động sinh xong testcase và code cho đề:\n" + p.getTitle());
+                    AutoGenerationResult result = get();
+                    if (result.success) {
+                        autoGenerateStatusLabel.setText("Da sinh ngam " + result.savedTestcases + " testcase cho de [" + p.getTitle() + "].");
+                        autoGenerateStatusLabel.setForeground(AppTheme.ACCENT_GREEN);
                     } else {
-                        JOptionPane.showMessageDialog(ProblemEntryPanel.this, "⚠️ Lỗi khi sinh testcase cho đề " + p.getTitle() + ":\n" + res.getErrorMessage());
+                        autoGenerateStatusLabel.setText("Sinh testcase ngam that bai cho de [" + p.getTitle() + "].");
+                        autoGenerateStatusLabel.setForeground(AppTheme.ACCENT_RED);
+                        autoGenerateStatusLabel.setToolTipText(result.errorMessage);
                     }
                 } catch (Exception ex) {
+                    autoGenerateStatusLabel.setText("Sinh testcase ngam bi loi cho de [" + p.getTitle() + "].");
+                    autoGenerateStatusLabel.setForeground(AppTheme.ACCENT_RED);
+                    autoGenerateStatusLabel.setToolTipText(ex.getMessage());
                     ex.printStackTrace();
                 }
             }
@@ -276,7 +322,6 @@ public class ProblemEntryPanel extends JPanel {
                     ex.printStackTrace();
                 }
             }
-            JOptionPane.showMessageDialog(this, "✅ Lưu đề thi thành công!\nHệ thống đang tự động sinh testcase dưới nền...");
             triggerAutoGenerateTestcases(p);
             clearForm();
             refreshProblemList();
@@ -325,7 +370,6 @@ public class ProblemEntryPanel extends JPanel {
         }
 
         if (problemService.updateProblem(selected)) {
-            JOptionPane.showMessageDialog(this, "✅ Cập nhật đề thi thành công!\nHệ thống đang tự động sinh lại testcase dưới nền...");
             triggerAutoGenerateTestcases(selected);
             refreshProblemList();
         } else {
@@ -363,5 +407,27 @@ public class ProblemEntryPanel extends JPanel {
         timeLimitField.setText("2000");
         memoryLimitField.setText("256");
         problemList.clearSelection();
+    }
+
+    private static class AutoGenerationResult {
+        private final boolean success;
+        private final int savedTestcases;
+        private final int sampleCodeId;
+        private final String errorMessage;
+
+        private AutoGenerationResult(boolean success, int savedTestcases, int sampleCodeId, String errorMessage) {
+            this.success = success;
+            this.savedTestcases = savedTestcases;
+            this.sampleCodeId = sampleCodeId;
+            this.errorMessage = errorMessage;
+        }
+
+        private static AutoGenerationResult succeeded(int savedTestcases, int sampleCodeId) {
+            return new AutoGenerationResult(true, savedTestcases, sampleCodeId, null);
+        }
+
+        private static AutoGenerationResult failed(String errorMessage) {
+            return new AutoGenerationResult(false, 0, -1, errorMessage);
+        }
     }
 }

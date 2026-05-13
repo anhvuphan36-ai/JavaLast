@@ -326,7 +326,11 @@ public class CodeSubmitPanel extends JPanel {
 
         List<com.java.model.Testcase> testcases = problemService.getTestcasesByProblem(selected.id);
         if (testcases.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Chưa có testcase nào! Hãy vào AI Phân tích để sinh testcase trước.");
+            JOptionPane.showMessageDialog(this,
+                    "De [" + selected.title + "] chua co testcase nao trong CSDL.\n"
+                            + "Neu vua nhap de, hay doi AI sinh ngam xong hoac vao tab AI de sinh lai testcase.",
+                    "Chua co testcase",
+                    JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -338,25 +342,17 @@ public class CodeSubmitPanel extends JPanel {
         String expectedType = (String) expectedTypeCombo.getSelectedItem();
 
         judgeWorker = new SwingWorker<>() {
-            int tempCodeId = -1;
-
             @Override
             protected List<Submission> doInBackground() {
-                tempCodeId = problemService.addSampleCode(selected.id, code, language, "TEMP", false);
-                if (tempCodeId <= 0) return new java.util.ArrayList<>();
-                try {
-                    return problemService.runJudging(selected.id, tempCodeId, new DefaultJudgeService());
-                } finally {
-                    problemService.deleteSampleCode(tempCodeId);
-                }
+                return problemService.runAdHocJudging(selected.id, code, language);
             }
 
             @Override
             protected void done() {
                 try {
                     List<Submission> results = get();
-                    if (results.isEmpty() && tempCodeId <= 0) {
-                        statusLabel.setText("❌ Lỗi lưu code.");
+                    if (results.isEmpty()) {
+                        statusLabel.setText("Khong chay duoc code hoac chua co testcase.");
                         statusLabel.setForeground(AppTheme.ACCENT_RED);
                         return;
                     }

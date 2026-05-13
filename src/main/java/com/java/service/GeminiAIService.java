@@ -8,6 +8,7 @@ import com.java.model.AIResponse;
 import com.java.model.JudgeResult;
 import com.java.model.Problem;
 import com.java.model.Testcase;
+import com.java.util.CodeFormatter;
 import okhttp3.*;
 
 import java.io.IOException;
@@ -77,7 +78,7 @@ public class GeminiAIService implements AIService {
             response.setExplanation(expEl != null && !expEl.isJsonNull() ? expEl.getAsString() : "");
 
             JsonElement solEl = obj.get("ac_solution");
-            String acCode = (solEl != null && !solEl.isJsonNull()) ? solEl.getAsString() : "";
+            String acCode = (solEl != null && !solEl.isJsonNull()) ? CodeFormatter.formatGeneratedCode(solEl.getAsString(), "java") : "";
             response.setGeneratedSolution(acCode);
 
             // Bước 3: Chạy code AC để tính output chính xác cho từng input
@@ -151,8 +152,10 @@ public class GeminiAIService implements AIService {
                               + "ĐỀ BÀI:\n" + problem.getTitle() + "\n" + problem.getDescription();
                 String jsonResponse = callGeminiAPI(prompt, problem.getImagePath());
                 JsonObject obj = gson.fromJson(extractTextFromResponse(jsonResponse), JsonObject.class);
-                if (obj != null && obj.has("code")) return obj.get("code").getAsString();
-                return extractTextFromResponse(jsonResponse);
+                if (obj != null && obj.has("code")) {
+                    return CodeFormatter.formatGeneratedCode(obj.get("code").getAsString(), language);
+                }
+                return CodeFormatter.formatGeneratedCode(extractTextFromResponse(jsonResponse), language);
             } catch (Exception e) {
                 if (e.getMessage() != null && e.getMessage().contains("503") && i < maxRetries - 1) {
                     try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
