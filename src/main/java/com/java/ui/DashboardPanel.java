@@ -31,13 +31,11 @@ public class DashboardPanel extends JPanel {
         header.add(statsLabel, BorderLayout.EAST);
         add(header, BorderLayout.NORTH);
 
-        JPanel statsRow = new JPanel(new GridLayout(1, 4, 16, 0));
+        JPanel statsRow = new JPanel(new GridLayout(1, 2, 16, 0));
         statsRow.setBackground(AppTheme.BG_DARK);
         statsRow.setOpaque(false);
         statsRow.add(createStatCard("Đề thi", "0", AppTheme.ACCENT_CYAN));
-        statsRow.add(createStatCard("Testcases", "0", AppTheme.ACCENT_PURPLE));
         statsRow.add(createStatCard("Code mẫu", "0", AppTheme.ACCENT_GREEN));
-        statsRow.add(createStatCard("Submissions", "0", AppTheme.ACCENT_YELLOW));
         add(statsRow, BorderLayout.CENTER);
 
         JPanel grid = new JPanel(new GridLayout(2, 3, 20, 20));
@@ -45,10 +43,9 @@ public class DashboardPanel extends JPanel {
         grid.setOpaque(false);
 
         grid.add(createCard("📝 Nhập đề thi", "Tạo bài toán mới với text hoặc ảnh", AppTheme.ACCENT_CYAN, "PROBLEM_ENTRY"));
-        grid.add(createCard("🤖 AI Phân tích", "Sinh testcase & code tự động bằng Gemini", AppTheme.ACCENT_PURPLE, "AI_PANEL"));
-        grid.add(createCard("💻 Nộp code mẫu", "Nhập AC/WA/TLE và chấm thử", AppTheme.ACCENT_GREEN, "CODE_SUBMIT"));
-        grid.add(createCard("📊 Kết quả chấm", "Xem submissions với màu AC/WA/TLE", AppTheme.ACCENT_YELLOW, "RESULT"));
-        grid.add(createCard("📖 Hướng dẫn", "Xem tài liệu sử dụng chi tiết", AppTheme.TEXT_SECONDARY, "DOCS"));
+        grid.add(createCard("💻 Nộp code", "Nhập code và chấm bài", AppTheme.ACCENT_GREEN, "CODE_SUBMIT"));
+        grid.add(createCard("📊 Kết quả chấm", "Xem trạng thái chấm bài", AppTheme.ACCENT_YELLOW, "RESULT"));
+        grid.add(createCard("📖 Hướng dẫn", "Xem tài liệu sử dụng", AppTheme.TEXT_SECONDARY, "DOCS"));
         grid.add(createCard("🚪 Thoát", "Đóng ứng dụng", AppTheme.ACCENT_RED, "EXIT"));
 
         add(grid, BorderLayout.SOUTH);
@@ -95,11 +92,9 @@ public class DashboardPanel extends JPanel {
 
             @Override
             protected void done() {
-                statsLabel.setText(String.format("AC: %d | WA: %d | Tổng: %d submissions", acCount, waCount, subCount));
+                statsLabel.setText(String.format("Tổng: %d đề bài trong hệ thống", problemCount));
                 updateStatCardValue(0, String.valueOf(problemCount));
-                updateStatCardValue(1, String.valueOf(tcCount));
-                updateStatCardValue(2, String.valueOf(codeCount));
-                updateStatCardValue(3, String.valueOf(subCount));
+                updateStatCardValue(1, String.valueOf(codeCount));
             }
         };
         statsWorker.execute();
@@ -218,8 +213,8 @@ public class DashboardPanel extends JPanel {
                     JTextArea ta = new JTextArea(docs);
                     ta.setEditable(false);
                     ta.setFont(new Font("Consolas", Font.PLAIN, 13));
-                    ta.setBackground(new Color(0x1e, 0x1e, 0x2e));
-                    ta.setForeground(Color.WHITE);
+                    ta.setBackground(AppTheme.BG_CARD);
+                    ta.setForeground(AppTheme.TEXT_PRIMARY);
                     JScrollPane sp = new JScrollPane(ta);
                     sp.setPreferredSize(new Dimension(520, 480));
                     JOptionPane.showMessageDialog(card, sp, "Hướng dẫn cài đặt & sử dụng", JOptionPane.INFORMATION_MESSAGE);

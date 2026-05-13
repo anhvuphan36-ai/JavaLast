@@ -61,6 +61,7 @@ public class JudgeEngine {
 
     private Path writeSourceFile(Path workDir, String code, String language) throws IOException {
         String fileName;
+        String processedCode = code;
         switch (language.toLowerCase()) {
             case "java":
                 String className = extractJavaClassName(code);
@@ -69,6 +70,7 @@ public class JudgeEngine {
             case "cpp":
             case "c++":
                 fileName = "solution.cpp";
+                processedCode = sanitizeCppCode(code);
                 break;
             case "python":
             case "py":
@@ -78,8 +80,24 @@ public class JudgeEngine {
                 fileName = "solution.txt";
         }
         Path sourceFile = workDir.resolve(fileName);
-        Files.writeString(sourceFile, code, java.nio.charset.StandardCharsets.UTF_8);
+        Files.writeString(sourceFile, processedCode, java.nio.charset.StandardCharsets.UTF_8);
         return sourceFile;
+    }
+
+    private String sanitizeCppCode(String code) {
+        String s = code;
+        // Bỏ thư viện conio.h cổ điển không tương thích với gcc hiện đại
+        s = s.replaceAll("(?i)#include\\s*<conio\\.h>", "// #include <conio.h> (Removed by AI Judge)");
+        s = s.replaceAll("(?i)#include\\s*\"conio\\.h\"", "// #include \"conio.h\" (Removed by AI Judge)");
+        
+        // C++ chuẩn bắt buộc int main, không dùng void main
+        s = s.replaceAll("(?i)void\\s+main\\s*\\(", "int main(");
+        
+        // Các hàm của Turbo C gây lỗi biên dịch
+        s = s.replaceAll("(?i)clrscr\\s*\\(\\)\\s*;", "// clrscr();");
+        s = s.replaceAll("(?i)getch\\s*\\(\\)\\s*;", "// getch();");
+        
+        return s;
     }
 
     private String extractJavaClassName(String code) {
@@ -113,47 +131,67 @@ public class JudgeEngine {
     }
 
     private CompileResult compileJava(Path sourceFile, Path workDir) throws IOException, InterruptedException {
-        ProcessBuilder pb = new ProcessBuilder("javac", "-encoding", "UTF-8", sourceFile.getFileName().toString());
-        pb.directory(workDir.toFile());
-        pb.redirectErrorStream(true);
+        try {
+            ProcessBuilder pb = new ProcessBuilder("javac", "-encoding", "UTF-8", sourceFile.getFileName().toString());
+            pb.directory(workDir.toFile());
+            pb.redirectErrorStream(true);
 
-        Process process = pb.start();
-        String output = readStream(process.getInputStream());
-        boolean exited = process.waitFor(30, TimeUnit.SECONDS);
-        if (!exited) {
-            process.destroyForcibly();
+            Process process = pb.start();
+            String output = readStream(process.getInputStream());
+            boolean exited = process.waitFor(30, TimeUnit.SECONDS);
+            if (!exited) {
+                process.destroyForcibly();
+                CompileResult result = new CompileResult();
+                result.success = false;
+                result.output = "Compile timeout (30s)";
+                return result;
+            }
+
             CompileResult result = new CompileResult();
-            result.success = false;
-            result.output = "Compile timeout (30s)";
+            result.success = (process.exitValue() == 0);
+            result.output = output;
             return result;
+        } catch (IOException e) {
+            if (e.getMessage() != null && e.getMessage().contains("Cannot run program")) {
+                CompileResult result = new CompileResult();
+                result.success = false;
+                result.output = "Lỗi: Không tìm thấy 'javac'. Vui lòng cài đặt Java JDK và thêm vào biến môi trường PATH.";
+                return result;
+            }
+            throw e;
         }
-
-        CompileResult result = new CompileResult();
-        result.success = (process.exitValue() == 0);
-        result.output = output;
-        return result;
     }
 
     private CompileResult compileCpp(Path sourceFile, Path workDir) throws IOException, InterruptedException {
-        ProcessBuilder pb = new ProcessBuilder("g++", "-O2", "-std=c++17", "-o", "solution", sourceFile.getFileName().toString());
-        pb.directory(workDir.toFile());
-        pb.redirectErrorStream(true);
+        try {
+            ProcessBuilder pb = new ProcessBuilder("g++", "-O2", "-std=c++17", "-o", "solution", sourceFile.getFileName().toString());
+            pb.directory(workDir.toFile());
+            pb.redirectErrorStream(true);
 
-        Process process = pb.start();
-        String output = readStream(process.getInputStream());
-        boolean exited = process.waitFor(30, TimeUnit.SECONDS);
-        if (!exited) {
-            process.destroyForcibly();
+            Process process = pb.start();
+            String output = readStream(process.getInputStream());
+            boolean exited = process.waitFor(30, TimeUnit.SECONDS);
+            if (!exited) {
+                process.destroyForcibly();
+                CompileResult result = new CompileResult();
+                result.success = false;
+                result.output = "Compile timeout (30s)";
+                return result;
+            }
+
             CompileResult result = new CompileResult();
-            result.success = false;
-            result.output = "Compile timeout (30s)";
+            result.success = (process.exitValue() == 0);
+            result.output = output;
             return result;
+        } catch (IOException e) {
+            if (e.getMessage() != null && e.getMessage().contains("Cannot run program")) {
+                CompileResult result = new CompileResult();
+                result.success = false;
+                result.output = "Lỗi: Không tìm thấy 'g++'. Vui lòng cài đặt MinGW (g++) trên Windows và thêm vào biến môi trường PATH.";
+                return result;
+            }
+            throw e;
         }
-
-        CompileResult result = new CompileResult();
-        result.success = (process.exitValue() == 0);
-        result.output = output;
-        return result;
     }
 
     private static final boolean IS_WINDOWS = System.getProperty("os.name").toLowerCase().startsWith("windows");
@@ -185,7 +223,18 @@ public class JudgeEngine {
         }
         pb.directory(workDir.toFile());
 
-        Process process = pb.start();
+        Process process;
+        try {
+            process = pb.start();
+        } catch (IOException e) {
+            if (e.getMessage() != null && e.getMessage().contains("Cannot run program \"python")) {
+                RunResult err = new RunResult();
+                err.exitCode = -1;
+                err.stderr = "Lỗi: Không tìm thấy 'python'. Vui lòng cài đặt Python và thêm vào biến môi trường PATH.";
+                return err;
+            }
+            throw e;
+        }
 
         try (OutputStream os = process.getOutputStream()) {
             os.write(input.getBytes("UTF-8"));

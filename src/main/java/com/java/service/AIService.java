@@ -13,17 +13,18 @@ public interface AIService {
     AIResponse analyzeProblem(Problem problem);
 
     /**
-     * Tự động sinh code mẫu AC cho đề thi.
-     * @param problemDescription mô tả đề thi
+     * Tự động sinh code mẫu cho đề thi.
+     * @param problem đề thi
      * @param language ngôn ngữ: "java", "cpp"
+     * @param expectedType "AC", "WA", "TLE"
      * @return source code mẫu
      */
-    String generateSolution(String problemDescription, String language);
+    String generateSolution(Problem problem, String language, String expectedType);
 
     /**
      * Sinh checker script tùy chỉnh nếu đề yêu cầu chấm linh hoạt.
-     * @param problemDescription mô tả đề thi
-     * @return script checker (Python/Java tùy prompt)
+     * @param problem đề thi
+     * @return script checker (Python)
      */
-    String generateChecker(String problemDescription);
+    String generateChecker(Problem problem);
 }

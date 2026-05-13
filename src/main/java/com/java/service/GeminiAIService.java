@@ -136,21 +136,41 @@ public class GeminiAIService implements AIService {
     }
 
     @Override
-    public String generateSolution(String problemDescription, String language) {
-        try {
-            String prompt = "Hãy viết code " + language + " giải bài toán sau. Chỉ trả về code, không giải thích.\n\n" + problemDescription;
-            String jsonResponse = callGeminiAPI(prompt, null);
-            return extractTextFromResponse(jsonResponse);
-        } catch (Exception e) {
-            return "// Lỗi sinh code: " + e.getMessage();
+    public String generateSolution(Problem problem, String language, String expectedType) {
+        int maxRetries = 3;
+        for (int i = 0; i < maxRetries; i++) {
+            try {
+                String behavior = "GIẢI ĐÚNG HOÀN TOÀN (Accepted), tối ưu về thời gian và bộ nhớ";
+                if ("WA".equals(expectedType)) behavior = "CỐ TÌNH VIẾT SAI LOGIC (Wrong Answer) ở một số trường hợp đặc biệt nhưng cấu trúc vẫn hợp lệ (in ra kết quả sai). BẮT BUỘC phải sai.";
+                else if ("TLE".equals(expectedType)) behavior = "CỐ TÌNH VIẾT CODE CHẠY RẤT CHẬM (Time Limit Exceeded) bằng cách dùng vòng lặp lồng nhau vô ích hoặc đệ quy không tối ưu (ví dụ O(n^2) hoặc O(2^n)). BẮT BUỘC phải rất chậm.";
+                
+                String prompt = "Mày đóng vai một lập trình viên. Hãy viết code bằng ngôn ngữ " + language + " cho bài toán dưới đây.\n"
+                              + "YÊU CẦU ĐẶC BIỆT 1: Mã này phải " + behavior + ".\n"
+                              + "YÊU CẦU ĐẶC BIỆT 2: Được phép sử dụng TẤT CẢ các thư viện tiêu chuẩn (Standard Libraries) có sẵn của ngôn ngữ này.\n"
+                              + "QUY TẮC BẮT BUỘC: Chỉ trả về định dạng JSON với duy nhất 1 key là \"code\" chứa toàn bộ source code.\n\n"
+                              + "ĐỀ BÀI:\n" + problem.getTitle() + "\n" + problem.getDescription();
+                String jsonResponse = callGeminiAPI(prompt, problem.getImagePath());
+                JsonObject obj = gson.fromJson(extractTextFromResponse(jsonResponse), JsonObject.class);
+                if (obj != null && obj.has("code")) return obj.get("code").getAsString();
+                return extractTextFromResponse(jsonResponse);
+            } catch (Exception e) {
+                if (e.getMessage() != null && e.getMessage().contains("503") && i < maxRetries - 1) {
+                    try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
+                    continue; // Retry on 503
+                }
+                return "// Lỗi sinh code: " + e.getMessage();
+            }
         }
+        return "// Lỗi sinh code: API quá tải sau nhiều lần thử, vui lòng thử lại sau.";
     }
 
     @Override
-    public String generateChecker(String problemDescription) {
+    public String generateChecker(Problem problem) {
         try {
-            String prompt = "Hãy viết một script Python checker cho bài toán sau. Script nhận 2 file path: input_file và output_file. Trả về 'AC' nếu đúng, 'WA' nếu sai. Chỉ trả về code Python.\n\n" + problemDescription;
-            String jsonResponse = callGeminiAPI(prompt, null);
+            String prompt = "Hãy viết script Python checker. Trả về định dạng JSON với 1 key duy nhất là \"code\".\n\n" + problem.getTitle() + "\n" + problem.getDescription();
+            String jsonResponse = callGeminiAPI(prompt, problem.getImagePath());
+            JsonObject obj = gson.fromJson(extractTextFromResponse(jsonResponse), JsonObject.class);
+            if (obj != null && obj.has("code")) return obj.get("code").getAsString();
             return extractTextFromResponse(jsonResponse);
         } catch (Exception e) {
             return "# Lỗi sinh checker: " + e.getMessage();
@@ -237,6 +257,7 @@ public class GeminiAIService implements AIService {
             JsonObject generationConfig = new JsonObject();
             generationConfig.addProperty("temperature", 0.2);
             generationConfig.addProperty("maxOutputTokens", 32768);
+            generationConfig.addProperty("responseMimeType", "application/json");
             requestBody.add("generationConfig", generationConfig);
         }
 

@@ -58,6 +58,15 @@ public class ProblemService {
         }
     }
 
+    public boolean updateProblem(Problem problem) {
+        try {
+            return problemDAO.updateProblem(problem);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public boolean addTestcaseFull(int problemId, String inputContent, String outputContent, String type, boolean aiGenerated) {
         Testcase tc = new Testcase();
         tc.setProblemId(problemId);

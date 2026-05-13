@@ -50,7 +50,7 @@ public class ResultPanel extends JPanel {
         resultTable = new JTable(tableModel);
         resultTable.setFont(AppTheme.FONT_SMALL);
         resultTable.setRowHeight(36);
-        resultTable.setGridColor(new Color(0x33, 0x44, 0x55));
+        resultTable.setGridColor(AppTheme.BORDER_COLOR);
         resultTable.setDefaultRenderer(Object.class, new AlternatingRowRenderer());
         resultTable.setShowGrid(true);
         resultTable.setIntercellSpacing(new Dimension(1, 1));
@@ -144,7 +144,7 @@ public class ResultPanel extends JPanel {
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
             Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
             if (!isSelected) {
-                c.setBackground(row % 2 == 0 ? AppTheme.BG_DARK : new Color(0x19, 0x24, 0x34));
+                c.setBackground(row % 2 == 0 ? AppTheme.BG_DARK : AppTheme.BG_CARD);
                 c.setForeground(AppTheme.TEXT_PRIMARY);
             }
             return c;

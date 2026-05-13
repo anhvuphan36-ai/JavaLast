@@ -39,7 +39,7 @@ public class AIPanel extends JPanel {
         topPanel.add(new JLabel("Chọn đề thi:"));
         problemCombo = new JComboBox<>();
         problemCombo.setPreferredSize(new Dimension(250, 28));
-        refreshProblemList();
+        problemCombo.addActionListener(e -> viewExistingTestcases(false));
         topPanel.add(problemCombo);
 
         JButton btnRefresh = new JButton("🔄 Tải lại");
@@ -103,6 +103,8 @@ public class AIPanel extends JPanel {
         btnAnalyze.addActionListener(e -> runAIAnalysis());
         btnPanel.add(btnAnalyze);
         add(btnPanel, BorderLayout.SOUTH);
+        
+        refreshProblemList();
     }
 
     private void refreshProblemList() {
@@ -114,9 +116,15 @@ public class AIPanel extends JPanel {
     }
 
     private void viewExistingTestcases() {
+        viewExistingTestcases(true);
+    }
+
+    private void viewExistingTestcases(boolean showLog) {
+        if (testcaseTable == null || testcaseTableModel == null) return;
+        
         ProblemComboItem selected = (ProblemComboItem) problemCombo.getSelectedItem();
         if (selected == null) {
-            JOptionPane.showMessageDialog(this, "Chọn đề thi trước!");
+            if (showLog) JOptionPane.showMessageDialog(this, "Chọn đề thi trước!");
             return;
         }
         testcaseTableModel.setRowCount(0);
@@ -131,7 +139,16 @@ public class AIPanel extends JPanel {
                 i++, tc.getTestcaseType(), inputPreview, outputPreview, tc.isAiGenerated() ? "✓" : "✗"
             });
         }
-        logArea.append("Đã tải " + testcases.size() + " testcase hiện có.\n");
+        if (showLog) {
+            logArea.append("Đã tải " + testcases.size() + " testcase của đề [" + selected.title + "].\n");
+        }
+        if (testcaseTable.getParent() != null && testcaseTable.getParent().getParent() instanceof JScrollPane) {
+            JScrollPane scroll = (JScrollPane) testcaseTable.getParent().getParent();
+            if (scroll.getBorder() instanceof javax.swing.border.TitledBorder) {
+                ((javax.swing.border.TitledBorder) scroll.getBorder()).setTitle("Testcases của: " + selected.title);
+                scroll.repaint();
+            }
+        }
     }
 
     private void runAIAnalysis() {
@@ -243,7 +260,7 @@ public class AIPanel extends JPanel {
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
             Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
             if (!isSelected) {
-                c.setBackground(row % 2 == 0 ? AppTheme.BG_DARK : new Color(0x19, 0x24, 0x34));
+                c.setBackground(row % 2 == 0 ? AppTheme.BG_DARK : AppTheme.BG_CARD);
                 c.setForeground(AppTheme.TEXT_PRIMARY);
             }
             return c;

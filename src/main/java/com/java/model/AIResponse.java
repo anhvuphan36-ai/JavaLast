@@ -7,10 +7,14 @@ public class AIResponse {
     private List<Testcase> testcases;
     private String generatedSolution;
     private String generatedChecker;
+    private String cleanDescription;
     private boolean success;
     private String errorMessage;
 
     public AIResponse() {}
+
+    public String getCleanDescription() { return cleanDescription; }
+    public void setCleanDescription(String cleanDescription) { this.cleanDescription = cleanDescription; }
 
     public String getExplanation() { return explanation; }
     public void setExplanation(String explanation) { this.explanation = explanation; }

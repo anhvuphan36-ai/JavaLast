@@ -32,7 +32,10 @@ public class CodeSubmitPanel extends JPanel {
         setBorder(AppTheme.BORDER_EMPTY_LG);
 
         JLabel lblTitle = AppTheme.createHeadingLabel("💻 Nộp code mẫu & Chấm thử");
-        add(lblTitle, BorderLayout.NORTH);
+        
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(AppTheme.BG_DARK);
+        headerPanel.add(lblTitle, BorderLayout.NORTH);
 
         JPanel topPanel = new JPanel(new GridBagLayout());
         topPanel.setBackground(AppTheme.BG_DARK);
@@ -73,7 +76,13 @@ public class CodeSubmitPanel extends JPanel {
         btnUploadFile.addActionListener(e -> uploadCodeFile());
         topPanel.add(btnUploadFile, gbc);
 
-        add(topPanel, BorderLayout.WEST);
+        gbc.gridx = 3; gbc.gridy = 2;
+        JButton btnGenerateAI = new JButton("🤖 AI Sinh Code Mẫu");
+        btnGenerateAI.addActionListener(e -> generateAISampleCode());
+        topPanel.add(btnGenerateAI, gbc);
+
+        headerPanel.add(topPanel, BorderLayout.CENTER);
+        add(headerPanel, BorderLayout.NORTH);
 
         codeArea = AppTheme.createStyledTextArea(15, 50);
         add(new JScrollPane(codeArea), BorderLayout.CENTER);
@@ -94,22 +103,25 @@ public class CodeSubmitPanel extends JPanel {
         resultTable.setRowHeight(32);
         resultTable.setDefaultRenderer(Object.class, new AlternatingRowRenderer());
         resultTable.getColumnModel().getColumn(1).setCellRenderer(new StatusRenderer());
-        resultTable.getColumnModel().getColumn(0).setPreferredWidth(60);
-        resultTable.getColumnModel().getColumn(1).setPreferredWidth(55);
-        resultTable.getColumnModel().getColumn(2).setPreferredWidth(65);
-        resultTable.getColumnModel().getColumn(3).setPreferredWidth(120);
-        resultTable.getColumnModel().getColumn(4).setPreferredWidth(120);
-        resultTable.getColumnModel().getColumn(5).setPreferredWidth(150);
+        resultTable.getColumnModel().getColumn(0).setPreferredWidth(75);
+        resultTable.getColumnModel().getColumn(1).setPreferredWidth(60);
+        resultTable.getColumnModel().getColumn(2).setPreferredWidth(85);
+        resultTable.getColumnModel().getColumn(3).setPreferredWidth(100);
+        resultTable.getColumnModel().getColumn(4).setPreferredWidth(100);
+        resultTable.getColumnModel().getColumn(5).setPreferredWidth(180);
 
         JScrollPane scrollPane = new JScrollPane(resultTable);
-        scrollPane.setPreferredSize(new Dimension(400, 300));
+        scrollPane.setPreferredSize(new Dimension(600, 300));
         rightPanel.add(scrollPane, BorderLayout.CENTER);
 
-        JPanel codeListPanel = new JPanel(new BorderLayout(4, 4));
+        JPanel codeListPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 4));
         codeListPanel.setBackground(AppTheme.BG_DARK);
-        JButton btnViewCodes = new JButton("Xem code mẫu đã lưu");
+        JButton btnViewCodes = new JButton("Xem code đã lưu");
         btnViewCodes.addActionListener(e -> viewExistingCodes());
-        codeListPanel.add(btnViewCodes, BorderLayout.NORTH);
+        JButton btnDeleteCodes = new JButton("🗑 Xóa mã");
+        btnDeleteCodes.addActionListener(e -> deleteSampleCode());
+        codeListPanel.add(btnViewCodes);
+        codeListPanel.add(btnDeleteCodes);
         rightPanel.add(codeListPanel, BorderLayout.SOUTH);
 
         add(rightPanel, BorderLayout.EAST);
@@ -135,6 +147,87 @@ public class CodeSubmitPanel extends JPanel {
         List<Problem> list = problemService.getAllProblems();
         for (Problem p : list) {
             problemCombo.addItem(new ProblemComboItem(p.getId(), p.getTitle()));
+        }
+    }
+
+    private void generateAISampleCode() {
+        ProblemComboItem selected = (ProblemComboItem) problemCombo.getSelectedItem();
+        if (selected == null) {
+            JOptionPane.showMessageDialog(this, "Chọn đề thi trước!");
+            return;
+        }
+        Problem p = problemService.getProblemById(selected.id);
+        if (p == null) return;
+
+        String lang = (String) languageCombo.getSelectedItem();
+        String type = (String) expectedTypeCombo.getSelectedItem();
+        
+        String[] options = {"Chỉ " + lang, "Cả 3 ngôn ngữ (Java, C++, Python)"};
+        int choice = JOptionPane.showOptionDialog(this,
+            "Bạn muốn AI sinh code mẫu cho ngôn ngữ nào?",
+            "Tùy chọn AI",
+            JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE,
+            null, options, options[0]);
+
+        if (choice < 0) return;
+
+        if (choice == 0) {
+            statusLabel.setText("⏳ Đang nhờ AI sinh code " + type + " (" + lang + ")...");
+            statusLabel.setForeground(AppTheme.ACCENT_PURPLE);
+            codeArea.setText("// Đang sinh code... Vui lòng đợi trong vài giây...");
+
+            new SwingWorker<String, Void>() {
+                @Override
+                protected String doInBackground() {
+                    return new com.java.service.GeminiAIService().generateSolution(p, lang, type);
+                }
+                @Override
+                protected void done() {
+                    try {
+                        String code = get();
+                        codeArea.setText(code);
+                        statusLabel.setText("✅ AI đã sinh xong code mẫu " + type);
+                        statusLabel.setForeground(AppTheme.ACCENT_GREEN);
+                    } catch (Exception ex) {
+                        codeArea.setText("// Lỗi: " + ex.getMessage());
+                        statusLabel.setText("❌ Lỗi sinh code AI");
+                        statusLabel.setForeground(AppTheme.ACCENT_RED);
+                    }
+                }
+            }.execute();
+        } else {
+            statusLabel.setText("⏳ Đang nhờ AI sinh code 3 ngôn ngữ (" + type + ")...");
+            statusLabel.setForeground(AppTheme.ACCENT_PURPLE);
+            codeArea.setText("// Đang sinh code cho Java, C++, Python...\n// Quá trình này sẽ mất khoảng 10-15 giây, hệ thống tự động lưu khi xong.");
+
+            new SwingWorker<Void, String>() {
+                @Override
+                protected Void doInBackground() throws Exception {
+                    String[] allLangs = {"java", "cpp", "python"};
+                    com.java.service.GeminiAIService aiService = new com.java.service.GeminiAIService();
+                    for (String l : allLangs) {
+                        publish("⏳ Đang sinh " + l + "...");
+                        String code = aiService.generateSolution(p, l, type);
+                        if (!code.startsWith("// Lỗi")) {
+                            problemService.addSampleCode(p.getId(), code, l, type, true);
+                        }
+                    }
+                    return null;
+                }
+
+                @Override
+                protected void process(List<String> chunks) {
+                    statusLabel.setText(chunks.get(chunks.size() - 1));
+                }
+
+                @Override
+                protected void done() {
+                    statusLabel.setText("✅ Đã sinh và lưu code 3 ngôn ngữ!");
+                    statusLabel.setForeground(AppTheme.ACCENT_GREEN);
+                    codeArea.setText("// Đã hoàn tất!\n// Hãy nhấn nút 'Xem code đã lưu' bên dưới để kiểm tra.");
+                    JOptionPane.showMessageDialog(CodeSubmitPanel.this, "Đã sinh xong cả 3 ngôn ngữ!\nVui lòng nhấn 'Xem code đã lưu' để kiểm tra.", "Hoàn tất", JOptionPane.INFORMATION_MESSAGE);
+                }
+            }.execute();
         }
     }
 
@@ -166,14 +259,38 @@ public class CodeSubmitPanel extends JPanel {
         }
 
         StringBuilder sb = new StringBuilder();
+        sb.append("====================================================\n");
+        sb.append(String.format("📌 ĐỀ THI: [%d] %s\n", selected.id, selected.title));
+        sb.append("====================================================\n\n");
+        
         for (SampleCode sc : codes) {
-            sb.append(String.format("[ID=%d] %s | %s | AI=%s\n", sc.getId(), sc.getLanguage(), sc.getExpectedType(), sc.isAiGenerated() ? "✓" : "✗"));
-            sb.append("---\n");
+            sb.append(String.format("🔹 [Mã Code: %d] Ngôn ngữ: %s | Loại: %s | AI Sinh: %s\n", 
+                sc.getId(), sc.getLanguage(), sc.getExpectedType(), sc.isAiGenerated() ? "Có" : "Không"));
+            sb.append(sc.getCodeContent()).append("\n\n");
         }
+
         JTextArea ta = new JTextArea(sb.toString());
         ta.setEditable(false);
-        ta.setFont(new Font("Consolas", Font.PLAIN, 12));
-        JOptionPane.showMessageDialog(this, new JScrollPane(ta), "Code mẫu đã lưu", JOptionPane.INFORMATION_MESSAGE);
+        ta.setFont(new Font("Consolas", Font.PLAIN, 13));
+        JScrollPane sp = new JScrollPane(ta);
+        sp.setPreferredSize(new Dimension(800, 600));
+        JOptionPane.showMessageDialog(this, sp, "Code mẫu đã lưu", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void deleteSampleCode() {
+        String input = JOptionPane.showInputDialog(this, "Nhập ID của code mẫu cần xóa (Xem ID bằng nút bên cạnh):");
+        if (input != null && !input.trim().isEmpty()) {
+            try {
+                int id = Integer.parseInt(input.trim());
+                if (problemService.deleteSampleCode(id)) {
+                    JOptionPane.showMessageDialog(this, "✅ Đã xóa code mẫu ID=" + id);
+                } else {
+                    JOptionPane.showMessageDialog(this, "❌ Không tìm thấy code mẫu ID=" + id);
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "ID không hợp lệ!");
+            }
+        }
     }
 
     private void saveCode() {
@@ -372,7 +489,7 @@ public class CodeSubmitPanel extends JPanel {
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
             Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
             if (!isSelected) {
-                c.setBackground(row % 2 == 0 ? AppTheme.BG_DARK : new Color(0x19, 0x24, 0x34));
+                c.setBackground(row % 2 == 0 ? AppTheme.BG_DARK : AppTheme.BG_CARD);
                 c.setForeground(AppTheme.TEXT_PRIMARY);
             }
             return c;

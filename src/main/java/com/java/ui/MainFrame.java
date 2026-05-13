@@ -12,7 +12,7 @@ public class MainFrame extends JFrame {
     private ProblemService problemService = new ProblemService();
 
     public MainFrame() {
-        setTitle("AI-Powered CP Judge System");
+        setTitle("Hệ thống Chấm Code Tự Động (AI Judge)");
         setSize(1400, 900);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -35,7 +35,7 @@ public class MainFrame extends JFrame {
         backBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         backBtn.addActionListener(e -> showPanel("DASHBOARD"));
 
-        JLabel title = AppTheme.createTitleLabel("AI-Powered CP Judge System");
+        JLabel title = AppTheme.createTitleLabel("Hệ thống Chấm Code Tự Động (AI Judge)");
         title.setIconTextGap(12);
 
         JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));

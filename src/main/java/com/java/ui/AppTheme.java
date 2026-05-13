@@ -8,34 +8,35 @@ import java.awt.*;
 
 public final class AppTheme {
 
-    // ===== COLOR PALETTE (Cyberpunk Dark) =====
-    public static final Color BG_DARKEST   = new Color(0x0B, 0x0F, 0x19); // #0B0F19
-    public static final Color BG_DARK      = new Color(0x11, 0x18, 0x27); // #111827
-    public static final Color BG_CARD      = new Color(0x1E, 0x29, 0x3B); // #1E293B
-    public static final Color BG_INPUT     = new Color(0x27, 0x3A, 0x4D); // #273A4D
+    // ===== COLOR PALETTE (Modern Clean Light) =====
+    public static final Color BG_DARKEST   = new Color(0xF8, 0xFA, 0xFC); // Slate 50
+    public static final Color BG_DARK      = new Color(0xF1, 0xF5, 0xF9); // Slate 100
+    public static final Color BG_CARD      = Color.WHITE;
+    public static final Color BG_INPUT     = Color.WHITE;
 
-    public static final Color ACCENT_CYAN  = new Color(0x06, 0xB6, 0xD4); // #06B6D4
-    public static final Color ACCENT_GREEN = new Color(0x22, 0xC5, 0x5E); // #22C55E
-    public static final Color ACCENT_RED   = new Color(0xEF, 0x44, 0x44); // #EF4444
-    public static final Color ACCENT_YELLOW= new Color(0xEA, 0xB3, 0x08); // #EAB308
-    public static final Color ACCENT_PURPLE= new Color(0xA8, 0x55, 0xF7); // #A855F7
+    public static final Color ACCENT_CYAN  = new Color(0x02, 0x84, 0xC7); // Sky 600 (Primary Blue)
+    public static final Color ACCENT_GREEN = new Color(0x16, 0xA3, 0x4A); // Green 600
+    public static final Color ACCENT_RED   = new Color(0xDC, 0x26, 0x26); // Red 600
+    public static final Color ACCENT_YELLOW= new Color(0xD9, 0x77, 0x06); // Amber 600
+    public static final Color ACCENT_PURPLE= new Color(0x7C, 0x3A, 0xED); // Violet 600
 
-    public static final Color TEXT_PRIMARY   = new Color(0xF1, 0xF5, 0xF9); // #F1F5F9
-    public static final Color TEXT_SECONDARY = new Color(0x94, 0xA3, 0xB8); // #94A3B8
-    public static final Color TEXT_MUTED     = new Color(0x64, 0x71, 0x7A); // #64717A
+    public static final Color TEXT_PRIMARY   = new Color(0x0F, 0x17, 0x2A); // Slate 900
+    public static final Color TEXT_SECONDARY = new Color(0x47, 0x55, 0x69); // Slate 600
+    public static final Color TEXT_MUTED     = new Color(0x94, 0xA3, 0xB8); // Slate 400
 
     // ===== FONTS (Larger, readable) =====
-    public static final Font FONT_TITLE   = new Font("Segoe UI", Font.BOLD, 32);
-    public static final Font FONT_HEADING = new Font("Segoe UI", Font.BOLD, 22);
-    public static final Font FONT_SUBHEAD = new Font("Segoe UI", Font.BOLD, 16);
-    public static final Font FONT_BODY    = new Font("Segoe UI", Font.PLAIN, 15);
-    public static final Font FONT_CODE    = new Font("JetBrains Mono", Font.PLAIN, 14);
-    public static final Font FONT_SMALL   = new Font("Segoe UI", Font.PLAIN, 13);
-    public static final Font FONT_BUTTON  = new Font("Segoe UI", Font.BOLD, 15);
+    public static final Font FONT_TITLE   = new Font("Segoe UI", Font.BOLD, 28);
+    public static final Font FONT_HEADING = new Font("Segoe UI", Font.BOLD, 20);
+    public static final Font FONT_SUBHEAD = new Font("Segoe UI", Font.BOLD, 15);
+    public static final Font FONT_BODY    = new Font("Segoe UI", Font.PLAIN, 14);
+    public static final Font FONT_CODE    = new Font("Consolas", Font.PLAIN, 14);
+    public static final Font FONT_SMALL   = new Font("Segoe UI", Font.PLAIN, 12);
+    public static final Font FONT_BUTTON  = new Font("Segoe UI", Font.BOLD, 14);
 
     // ===== BORDERS =====
-    public static final Border BORDER_CARD = new LineBorder(new Color(0x33, 0x44, 0x55), 1, true);
-    public static final Border BORDER_INPUT = new LineBorder(new Color(0x44, 0x55, 0x66), 1, true);
+    public static final Color BORDER_COLOR = new Color(0xE2, 0xE8, 0xF0); // Slate 200
+    public static final Border BORDER_CARD = new LineBorder(BORDER_COLOR, 1, true);
+    public static final Border BORDER_INPUT = new LineBorder(new Color(0xCB, 0xD5, 0xE1), 1, true); // Slate 300
     public static final Border BORDER_EMPTY_SM = new EmptyBorder(8, 12, 8, 12);
     public static final Border BORDER_EMPTY_MD = new EmptyBorder(16, 20, 16, 20);
     public static final Border BORDER_EMPTY_LG = new EmptyBorder(24, 32, 24, 32);
@@ -64,7 +65,7 @@ public final class AppTheme {
         btn.setBorder(new EmptyBorder(10, 24, 10, 24));
         btn.setMinimumSize(new Dimension(80, 36));
         btn.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) { btn.setBackground(ACCENT_CYAN.brighter()); }
+            public void mouseEntered(java.awt.event.MouseEvent evt) { btn.setBackground(ACCENT_CYAN.darker()); }
             public void mouseExited(java.awt.event.MouseEvent evt) { btn.setBackground(ACCENT_CYAN); }
         });
         return btn;
@@ -77,13 +78,15 @@ public final class AppTheme {
         btn.setBackground(BG_CARD);
         btn.setFocusPainted(false);
         btn.setBorderPainted(true);
-        btn.setBorder(new LineBorder(new Color(0x44, 0x55, 0x66), 1, true));
         btn.setOpaque(true);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(10, 24, 10, 24));
+        btn.setBorder(BorderFactory.createCompoundBorder(
+            new LineBorder(BORDER_COLOR, 1, true),
+            new EmptyBorder(9, 23, 9, 23)
+        ));
         btn.setMinimumSize(new Dimension(80, 36));
         btn.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) { btn.setBackground(new Color(0x33, 0x44, 0x55)); }
+            public void mouseEntered(java.awt.event.MouseEvent evt) { btn.setBackground(BG_DARK); }
             public void mouseExited(java.awt.event.MouseEvent evt) { btn.setBackground(BG_CARD); }
         });
         return btn;
@@ -93,7 +96,7 @@ public final class AppTheme {
         JButton btn = createPrimaryButton(text);
         btn.setBackground(bg);
         btn.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) { btn.setBackground(bg.brighter()); }
+            public void mouseEntered(java.awt.event.MouseEvent evt) { btn.setBackground(bg.darker()); }
             public void mouseExited(java.awt.event.MouseEvent evt) { btn.setBackground(bg); }
         });
         return btn;
@@ -133,8 +136,8 @@ public final class AppTheme {
     public static JScrollPane createStyledScrollPane(Component view) {
         JScrollPane sp = new JScrollPane(view);
         sp.setBorder(BORDER_CARD);
-        sp.getViewport().setBackground(BG_DARK);
-        sp.setBackground(BG_DARK);
+        sp.getViewport().setBackground(BG_CARD);
+        sp.setBackground(BG_CARD);
         return sp;
     }
 
@@ -147,8 +150,8 @@ public final class AppTheme {
         ta.setBorder(BORDER_EMPTY_SM);
         ta.setLineWrap(true);
         ta.setWrapStyleWord(true);
-        ta.setSelectionColor(ACCENT_CYAN.darker());
-        ta.setSelectedTextColor(Color.WHITE);
+        ta.setSelectionColor(new Color(0xBA, 0xE6, 0xFD)); // Sky 200
+        ta.setSelectedTextColor(TEXT_PRIMARY);
         return ta;
     }
 
@@ -159,8 +162,8 @@ public final class AppTheme {
         tf.setForeground(TEXT_PRIMARY);
         tf.setCaretColor(TEXT_PRIMARY);
         tf.setBorder(BorderFactory.createCompoundBorder(BORDER_INPUT, BORDER_EMPTY_SM));
-        tf.setSelectionColor(ACCENT_CYAN.darker());
-        tf.setSelectedTextColor(Color.WHITE);
+        tf.setSelectionColor(new Color(0xBA, 0xE6, 0xFD));
+        tf.setSelectedTextColor(TEXT_PRIMARY);
         return tf;
     }
 
@@ -176,7 +179,7 @@ public final class AppTheme {
 
     public static void applyGlobalTheme() {
         try {
-            com.formdev.flatlaf.FlatDarkLaf.setup();
+            com.formdev.flatlaf.FlatLightLaf.setup();
             UIManager.put("Panel.background", BG_DARK);
             UIManager.put("OptionPane.background", BG_DARK);
             UIManager.put("TextField.background", BG_INPUT);
@@ -184,9 +187,11 @@ public final class AppTheme {
             UIManager.put("ComboBox.background", BG_INPUT);
             UIManager.put("Table.background", BG_CARD);
             UIManager.put("Table.foreground", TEXT_PRIMARY);
-            UIManager.put("Table.gridColor", new Color(0x33, 0x44, 0x55));
-            UIManager.put("Table.selectionBackground", ACCENT_CYAN.darker());
-            UIManager.put("Table.selectionForeground", Color.WHITE);
+            UIManager.put("Table.gridColor", BORDER_COLOR);
+            UIManager.put("Table.selectionBackground", new Color(0xE0, 0xF2, 0xFE)); // Sky 100
+            UIManager.put("Table.selectionForeground", TEXT_PRIMARY);
+            UIManager.put("Button.background", BG_CARD);
+            UIManager.put("Button.foreground", TEXT_PRIMARY);
         } catch (Exception e) {
             e.printStackTrace();
         }

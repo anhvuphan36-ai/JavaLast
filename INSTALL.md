@@ -1,15 +1,17 @@
 # Hướng dẫn cài đặt — AI-Powered CP Judge System
 
-## 1. Yêu cầu hệ thống
+# 1. Yêu cầu hệ thống
 
-| Thành phần | Phiên bản tối thiểu | Ghi chú |
-|------------|---------------------|---------|
-| **JDK** | Java 21 (LTS) | Cài đặt từ [Oracle](https://www.oracle.com/java/technologies/downloads/#java21) hoặc [Eclipse Temurin](https://adoptium.net/) |
-| **Maven** | 3.8+ | Dùng để build project |
-| **MySQL** | 8.0+ | Database lưu đề thi, testcase, submission |
-| **Docker Desktop** | Bất kỳ | Khuyến nghị chạy MySQL trong container |
-| **Trình biên dịch** | gcc/g++ (Windows: MinGW-w64) | Cần thiết để chấm C++ |
-| **Python** | 3.10+ | Cần thiết để chấm Python |
+
+| Thành phần          | Phiên bản tối thiểu          | Ghi chú                                                                                                                       |
+| ------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| **JDK**             | Java 21 (LTS)                | Cài đặt từ [Oracle](https://www.oracle.com/java/technologies/downloads/#java21) hoặc [Eclipse Temurin](https://adoptium.net/) |
+| **Maven**           | 3.8+                         | Dùng để build project                                                                                                         |
+| **MySQL**           | 8.0+                         | Database lưu đề thi, testcase, submission                                                                                     |
+| **Docker Desktop**  | Bất kỳ                       | Khuyến nghị chạy MySQL trong container                                                                                        |
+| **Trình biên dịch** | gcc/g++ (Windows: MinGW-w64) | Cần thiết để chấm C++                                                                                                         |
+| **Python**          | 3.10+                        | Cần thiết để chấm Python                                                                                                      |
+
 
 > **Lưu ý Windows:** Cài [MinGW-w64](https://www.mingw-w64.org/downloads/) và thêm `C:\mingw64\bin` vào `PATH` để `g++` hoạt động.
 
@@ -87,16 +89,19 @@ File JAR sẽ được tạo tại: `target/JudgeSystem-1.0-SNAPSHOT.jar`
 ### Bước 6: Chạy ứng dụng
 
 **Cách 1 — Dùng script:**
+
 ```bash
 run.bat
 ```
 
 **Cách 2 — Dùng Maven:**
+
 ```bash
 mvn exec:java -Dexec.mainClass="com.java.Main"
 ```
 
 **Cách 3 — Chạy JAR trực tiếp:**
+
 ```bash
 java -jar target/JudgeSystem-1.0-SNAPSHOT.jar
 ```
@@ -120,19 +125,22 @@ Nếu không có file này, ứng dụng sẽ dùng giá trị mặc định (`l
 
 ## 5. Troubleshooting
 
-| Lỗi | Nguyên nhân | Cách khắc phục |
-|-----|-------------|----------------|
-| `ClassNotFoundException: com.mysql.cj.jdbc.Driver` | MySQL Connector/J chưa được tải | `mvn clean install` để tải dependency |
-| `Communications link failure` | MySQL chưa chạy hoặc sai port | Kiểm tra `docker ps`, đảm bảo port 3306 mở |
-| `g++ is not recognized` | MinGW chưa vào PATH | Thêm `C:\mingw64\bin` vào System Environment Variables |
-| `python3: command not found` (Windows) | Python chưa cài hoặc không trong PATH | Cài Python và đảm bảo `python` có thể gọi từ cmd |
-| Font/UI hiển thị lỗi | Java version thấp | Đảm bảo JDK 21+ và `JAVA_HOME` đúng |
+
+| Lỗi                                                | Nguyên nhân                           | Cách khắc phục                                         |
+| -------------------------------------------------- | ------------------------------------- | ------------------------------------------------------ |
+| `ClassNotFoundException: com.mysql.cj.jdbc.Driver` | MySQL Connector/J chưa được tải       | `mvn clean install` để tải dependency                  |
+| `Communications link failure`                      | MySQL chưa chạy hoặc sai port         | Kiểm tra `docker ps`, đảm bảo port 3306 mở             |
+| `g++ is not recognized`                            | MinGW chưa vào PATH                   | Thêm `C:\mingw64\bin` vào System Environment Variables |
+| `python3: command not found` (Windows)             | Python chưa cài hoặc không trong PATH | Cài Python và đảm bảo `python` có thể gọi từ cmd       |
+| Font/UI hiển thị lỗi                               | Java version thấp                     | Đảm bảo JDK 21+ và `JAVA_HOME` đúng                    |
+
 
 ---
 
 ## 6. Kiểm tra sau cài đặt
 
 Sau khi chạy app, bạn sẽ thấy:
+
 - **Dashboard** hiển thị số lượng đề thi, testcase, submission.
 - Có thể tạo đề mới, chấm code C++/Java/Python, phân tích bằng AI.
 

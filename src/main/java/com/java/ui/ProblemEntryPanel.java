@@ -198,6 +198,36 @@ public class ProblemEntryPanel extends JPanel {
         }
     }
 
+    private void triggerAutoGenerateTestcases(Problem p) {
+        SwingWorker<com.java.model.AIResponse, Void> worker = new SwingWorker<>() {
+            @Override
+            protected com.java.model.AIResponse doInBackground() {
+                return new com.java.service.GeminiAIService().analyzeProblem(p);
+            }
+            @Override
+            protected void done() {
+                try {
+                    com.java.model.AIResponse res = get();
+                    if (res.isSuccess() && res.getTestcases() != null) {
+                        problemService.deleteAiTestcasesForProblem(p.getId());
+                        for (com.java.model.Testcase tc : res.getTestcases()) {
+                            problemService.addTestcaseFull(p.getId(), tc.getInputData(), tc.getExpectedOutput(), tc.getTestcaseType(), true);
+                        }
+                        if (res.getGeneratedSolution() != null && !res.getGeneratedSolution().isBlank()) {
+                            problemService.addSampleCode(p.getId(), res.getGeneratedSolution(), "java", "AC", true);
+                        }
+                        JOptionPane.showMessageDialog(ProblemEntryPanel.this, "✅ Đã tự động sinh xong testcase và code cho đề:\n" + p.getTitle());
+                    } else {
+                        JOptionPane.showMessageDialog(ProblemEntryPanel.this, "⚠️ Lỗi khi sinh testcase cho đề " + p.getTitle() + ":\n" + res.getErrorMessage());
+                    }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        };
+        worker.execute();
+    }
+
     private void saveProblem() {
         String title = titleField.getText().trim();
         String desc = descArea.getText().trim();
@@ -236,17 +266,18 @@ public class ProblemEntryPanel extends JPanel {
 
         int problemId = problemService.createProblem(p);
         if (problemId > 0) {
+            p.setId(problemId);
             if (selectedImagePath != null) {
                 try {
                     String savedPath = FileManager.saveProblemImage(problemId, selectedImagePath);
-                    p.setId(problemId);
                     p.setImagePath(savedPath);
                     problemService.updateProblem(p);
                 } catch (IOException ex) {
                     ex.printStackTrace();
                 }
             }
-            JOptionPane.showMessageDialog(this, "✅ Lưu đề thi thành công! ID = " + problemId);
+            JOptionPane.showMessageDialog(this, "✅ Lưu đề thi thành công!\nHệ thống đang tự động sinh testcase dưới nền...");
+            triggerAutoGenerateTestcases(p);
             clearForm();
             refreshProblemList();
         } else {
@@ -294,7 +325,8 @@ public class ProblemEntryPanel extends JPanel {
         }
 
         if (problemService.updateProblem(selected)) {
-            JOptionPane.showMessageDialog(this, "✅ Cập nhật đề thi thành công!");
+            JOptionPane.showMessageDialog(this, "✅ Cập nhật đề thi thành công!\nHệ thống đang tự động sinh lại testcase dưới nền...");
+            triggerAutoGenerateTestcases(selected);
             refreshProblemList();
         } else {
             JOptionPane.showMessageDialog(this, "❌ Cập nhật thất bại!");
