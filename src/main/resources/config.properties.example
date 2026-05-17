@@ -1,0 +1,37 @@
+# Database Configuration
+# Copy this file to config.properties and fill in your actual values.
+db.url=jdbc:mysql://localhost:3306/JudgeSystem?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
+db.username=root
+db.password=YOUR_DB_PASSWORD
+db.driver=com.mysql.cj.jdbc.Driver
+
+# AI API Configuration
+# Option 1: Google Gemini (default)
+#   ai.format=gemini
+#   ai.api.url=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=
+#   ai.model=gemini-2.5-flash
+#
+# Option 2: OpenAI-compatible API (NVIDIA, OpenRouter, etc.)
+#   ai.format=openai
+#   ai.api.url=https://integrate.api.nvidia.com/v1/chat/completions
+#   ai.model=deepseek-ai/deepseek-v4-flash
+#
+# Get your API key from the provider and paste it below:
+ai.format=gemini
+ai.api.key=YOUR_API_KEY_HERE
+ai.api.url=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=
+ai.model=gemini-2.5-flash
+
+# File Storage
+file.root.dir=./JudgeSystemData
+file.problems.dir=./JudgeSystemData/Problems
+file.testcases.dir=./JudgeSystemData/Testcases
+file.submissions.dir=./JudgeSystemData/Submissions
+file.samples.dir=./JudgeSystemData/Samples
+
+# Judge Configuration
+judge.default.timelimit=2000
+judge.default.memorylimit=256
+judge.compiler.java=javac
+judge.compiler.cpp=g++
+judge.runner.java=java

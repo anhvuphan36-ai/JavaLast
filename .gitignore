@@ -1,0 +1,73 @@
+# Compiled class files
+*.class
+
+# Log files
+*.log
+
+# Package files
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Judge system data (local test data)
+JudgeSystemData/
+
+# Config with secrets
+src/main/resources/config.properties
+
+# Temp files
+*.tmp
+*.bak
+
+# Build scripts (not needed for submission)
+check_err.bat
+compile_check.bat
+compile_out.txt
+fix_config.bat
+force_build.bat
+push.bat
+test.bat
+test_n1000.txt
+test_n2000.txt
+test_n5000.txt
+test.cpp
+worst_case_alt_input.txt
+worst_case_anti_jit_input.txt
+worst_case_final_input.txt
+worst_case_input.txt
+worst_case_output.txt
+worst_case_random_input.txt
+worst_case_tle_input.txt
+write_config.py
+solution_on.cpp
+solution_on.exe
+solution_on2.cpp
+solution_on2.exe
+Main.class
+Main.java
+mvn/
