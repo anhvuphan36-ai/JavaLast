@@ -4,9 +4,10 @@
 
 Khi khởi động, bạn sẽ thấy màn hình chính với các nút chức năng:
 
-- **📝 Nhập đề thi mới** — Tạo bài toán mới
+- ** Nhập đề thi** — Tạo bài toán mới
+- **🤖 AI Phân tích** — AI sinh testcase + code mẫu tự động
 - **💻 Nộp code** — Nhập code và chấm bài
-- **📊 Kết quả chấm** — Xem trạng thái chấm bài
+- ** Kết quả chấm** — Xem trạng thái chấm bài
 - **📖 Hướng dẫn** — Xem tài liệu sử dụng (popup)
 - **🚪 Thoát** — Đóng ứng dụng
 
@@ -134,43 +135,27 @@ Bước 5: Nếu testcase yếu → quay lại AI Panel yêu cầu sinh thêm ed
 
 ---
 
-## 7. Ví dụ cụ thể: Đề "A + B Problem"
+## 7. Ví dụ cụ thể: Đề "Alpha Country"
 
-**Bước 1 — Nhập đề:**
-```
-Tiêu đề: A + B Problem
-Nội dung: Cho hai số nguyên a và b (-10^9 <= a, b <= 10^9). In ra tổng a + b.
-Loại: ICPC, Time limit: 1000ms, Memory: 256MB
-```
+**Bước 1 — Đề đã có sẵn trong hệ thống:**
+Sau khi khởi động Docker, bài "Alpha Country" đã tự động load vào CSDL.
+Vào Dashboard → chọn "Alpha Country" trong danh sách đề thi.
 
-**Bước 2 — AI sinh testcase:**
-AI sinh 5 testcase: small (3+5), normal (10+20), edge (0+0, -5+5), large (1000000+2000000)
+**Bước 2 — Xem testcase có sẵn:**
+Vào AI Panel → chọn đề "Alpha Country" → bấm "📋 Xem testcase hiện có"
+→ Hệ thống hiển thị 14 testcase đã được load sẵn (small, normal, edge, anti-wa).
 
-**Bước 3 — Chấm code AC:**
-```java
-import java.util.Scanner;
-public class Main {
-    public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-        long a = sc.nextLong();
-        long b = sc.nextLong();
-        System.out.println(a + b);
-    }
-}
-```
-→ Kết quả: **5/5 AC** ✅ — Testcase đúng
+**Bước 3 — Chấm code AC có sẵn:**
+Vào Code Submit → chọn đề "Alpha Country" → chọn code mẫu AC → bấm "⚖️ Chấm thử"
+→ Kết quả: **14/14 AC** ✅ — Testcase đúng, code chạy đúng.
 
-**Bước 4 — Chấm code WA:**
-```java
-System.out.println(a - b); // SAI: trừ thay vì cộng
-```
-→ Kết quả: **0/5 AC, 5/5 WA** ✅ — Testcase đủ mạnh, bắt được lỗi
+**Bước 4 — Chấm code WA có sẵn:**
+Chọn code mẫu WA (bug index) → bấm "️ Chấm thử"
+→ Kết quả: **Có WA** ✅ — Testcase đủ mạnh, bắt được lỗi sai index.
 
-**Bước 5 — Chấm code TLE:**
-```java
-while (true) {} // Vòng lặp vô hạn
-```
-→ Kết quả: **5/5 TLE** ✅ — Testcase bắt được code chậm
+**Bước 5 — Chấm code TLE có sẵn:**
+Chọn code mẫu TLE (O(n³)) → bấm "⚖️ Chấm thử"
+→ Kết quả: **Có TLE** ✅ — Testcase n=500 đủ lớn, bắt được code chậm.
 
 ---
 

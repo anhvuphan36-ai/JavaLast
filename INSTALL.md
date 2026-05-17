@@ -131,17 +131,13 @@ Nếu không có file này, ứng dụng sẽ dùng giá trị mặc định (`l
 
 ---
 
-## 5. Chạy dữ liệu mẫu
+## 5. Dữ liệu mẫu
 
-```bash
-# Nếu dùng Docker
-docker exec -i judge-mysql mysql -uroot -p123 JudgeSystem < sample_data.sql
+**KHÔNG CẦN** chạy lệnh SQL thủ công.
 
-# Nếu cài MySQL trực tiếp
-mysql -u root -p JudgeSystem < sample_data.sql
-```
+Docker đã tự động load sẵn 2 bài mẫu (Alpha Country, Ocean Club) với đầy đủ testcase + code AC/WA/TLE khi chạy `docker-compose up -d`.
 
-Dữ liệu mẫu bao gồm 3 đề: A+B Problem, Prime Check, Sum 1 to N — mỗi đề có testcase + code AC/WA/TLE.
+> ⚠️ Nếu chạy `mysql < sample_data.sql` thủ công sẽ bị lỗi duplicate data.
 
 ---
 
@@ -163,8 +159,9 @@ Dữ liệu mẫu bao gồm 3 đề: A+B Problem, Prime Check, Sum 1 to N — m�
 
 Sau khi chạy app, bạn sẽ thấy:
 
-- **Dashboard** hiển thị số lượng đề thi, testcase, submission.
-- Có thể tạo đề mới, chấm code C++/Java/Python, phân tích bằng AI.
-- **37 unit/integration tests** đều pass (`mvn clean test`).
+- **Dashboard** hiển thị sẵn 2 bài mẫu: **Alpha Country**, **Ocean Club**
+- Mỗi bài có đầy đủ testcase + code AC/WA/TLE
+- Có thể tạo đề mới, chấm code C++/Java/Python, phân tích bằng AI
+- **37 unit/integration tests** đều pass (`mvn clean test`)
 
 Nếu gặp lỗi, kiểm tra log trong terminal hoặc IDE console.
