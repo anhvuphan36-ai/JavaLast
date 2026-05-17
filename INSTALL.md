@@ -43,12 +43,14 @@ JavaLast-main/
 
 ## 3. Cài đặt từng bước
 
-### Bước 1: Clone hoặc giải nén source code
+### Bước 1: Clone nhánh submission
 
 ```bash
-git clone <repo-url>
-cd JavaLast-main
+git clone -b submission https://github.com/anhvuphan36-ai/JavaLast.git
+cd JavaLast
 ```
+
+> ⚠️ **Lưu ý:** Phải clone nhánh `submission`, không phải `main`. Nhánh `submission` chứa đầy đủ dữ liệu mẫu (2 bài: Alpha Country, Ocean Club).
 
 ### Bước 2: Cấu hình API Key (cho AI)
 

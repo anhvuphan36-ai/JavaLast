@@ -21,7 +21,13 @@
 
 ## Chạy nhanh
 
+> ⚠️ **QUAN TRỌNG:** Clone nhánh `submission` (không phải `main`)
+
 ```bash
+# Clone nhánh submission
+git clone -b submission https://github.com/anhvuphan36-ai/JavaLast.git
+cd JavaLast
+
 # 1. Khởi động MySQL (tự động tạo CSDL + load 2 bài mẫu)
 docker-compose up -d
 
